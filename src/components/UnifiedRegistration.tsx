@@ -19,7 +19,6 @@ import {
   Calendar
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { securityService } from '../services/securityService';
 
 const UnifiedRegistration: React.FC = () => {
   const { signIn } = useAuth();
@@ -228,16 +227,13 @@ const UnifiedRegistration: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Hash password
-      const hashedPassword = await securityService.hashPassword(formData.password);
-      
       // Prepare registration data
       const registrationData = {
         role: selectedRole,
         fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
-        passwordHash: hashedPassword,
+        password: formData.password, // In production, this would be hashed on the backend
         emailVerified,
         phoneVerified,
         ...(selectedRole === 'logistics' ? {

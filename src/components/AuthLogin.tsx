@@ -73,8 +73,18 @@ const AuthLogin: React.FC<AuthLoginProps> = ({ onLogin }) => {
         permissions: getRolePermissions(selectedRole)
       };
 
-      // Simulate JWT token
-      const token = btoa(JSON.stringify({ ...userData, exp: Date.now() + 24 * 60 * 60 * 1000 }));
+      // Create simple token for demo (in production, this would come from backend)
+      const tokenPayload = {
+        sub: userData.id,
+        email: userData.email,
+        role: userData.role,
+        name: userData.name,
+        verified: userData.verified,
+        permissions: userData.permissions,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60
+      };
+      const token = btoa(JSON.stringify(tokenPayload));
       localStorage.setItem('trackas_token', token);
 
       onLogin(selectedRole, userData);

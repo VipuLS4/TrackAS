@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
+import { jwtDecode } from 'jwt-decode';
 
 interface User {
   id: string;
@@ -77,11 +78,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const token = localStorage.getItem('trackas_token');
     if (token) {
       try {
-        const userData = JSON.parse(atob(token));
-        if (userData.exp > Date.now()) {
+        const userData = jwtDecode<any>(token);
+        if (userData.exp * 1000 > Date.now()) {
           dispatch({
             type: 'LOGIN_SUCCESS',
-            payload: { user: userData, token }
+            payload: { 
+              user: {
+                id: userData.sub || userData.id,
+                email: userData.email,
+                role: userData.role,
+                name: userData.name,
+                verified: userData.verified || true,
+                permissions: userData.permissions || []
+              }, 
+              token 
+            }
           });
         } else {
           localStorage.removeItem('trackas_token');
@@ -109,7 +120,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         permissions: getRolePermissions(role)
       };
 
-      const token = btoa(JSON.stringify({ ...userData, exp: Date.now() + 24 * 60 * 60 * 1000 }));
+      // Create a simple token structure (in production, this would come from your backend)
+      const tokenPayload = {
+        sub: userData.id,
+        email: userData.email,
+        role: userData.role,
+        name: userData.name,
+        verified: userData.verified,
+        permissions: userData.permissions,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60 // 24 hours
+      };
+      
+      // Simple base64 encoding for demo (in production, use proper JWT from backend)
+      const token = btoa(JSON.stringify(tokenPayload));
       localStorage.setItem('trackas_token', token);
 
       dispatch({

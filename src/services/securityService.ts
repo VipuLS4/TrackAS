@@ -1,11 +1,8 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { jwtDecode } from 'jwt-decode';
 
 // Security service for authentication and authorization
 export class SecurityService {
   private static instance: SecurityService;
-  private readonly JWT_SECRET = process.env.JWT_SECRET || 'trackas-secret-key-2024';
-  private readonly JWT_EXPIRES_IN = '24h';
   
   public static getInstance(): SecurityService {
     if (!SecurityService.instance) {
@@ -14,51 +11,46 @@ export class SecurityService {
     return SecurityService.instance;
   }
 
-  // Password encryption
-  async hashPassword(password: string): Promise<string> {
+  // JWT Token decoding (frontend-safe)
+  decodeToken(token: string): any {
     try {
-      const saltRounds = 12;
-      return await bcrypt.hash(password, saltRounds);
+      return jwtDecode(token);
     } catch (error) {
-      console.error('Password hashing failed:', error);
-      throw new Error('Failed to hash password');
+      console.error('Token decoding failed:', error);
+      throw new Error('Invalid token format');
     }
   }
 
-  // Password verification
-  async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+  // Check if token is expired
+  isTokenExpired(token: string): boolean {
     try {
-      return await bcrypt.compare(password, hashedPassword);
+      const decoded = this.decodeToken(token);
+      return decoded.exp * 1000 < Date.now();
     } catch (error) {
-      console.error('Password verification failed:', error);
-      return false;
+      return true;
     }
   }
 
-  // JWT Token generation
-  generateToken(payload: any): string {
-    try {
-      return jwt.sign(payload, this.JWT_SECRET, { 
-        expiresIn: this.JWT_EXPIRES_IN,
-        issuer: 'trackas-platform',
-        audience: 'trackas-users'
-      });
-    } catch (error) {
-      console.error('Token generation failed:', error);
-      throw new Error('Failed to generate token');
+  // Simple password validation (frontend only)
+  validatePassword(password: string): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
     }
-  }
-
-  // JWT Token verification
-  verifyToken(token: string): any {
-    try {
-      return jwt.verify(token, this.JWT_SECRET, {
-        issuer: 'trackas-platform',
-        audience: 'trackas-users'
-      });
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      throw new Error('Invalid or expired token');
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+    if (!/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+    if (!/\d/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
     }
   }
 
