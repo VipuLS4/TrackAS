@@ -16,10 +16,6 @@ import AIRouteOptimizer from './AIRouteOptimizer';
 import CompanyRegistration from './CompanyRegistration';
 import VehicleRegistration from './VehicleRegistration';
 import VerificationDashboard from './VerificationDashboard';
-import OperationalFlow from './OperationalFlow';
-import LogisticsOperationalFlow from './LogisticsOperationalFlow';
-import OperatorOperationalFlow from './OperatorOperationalFlow';
-import CustomerOperationalFlow from './CustomerOperationalFlow';
 import AvailableJobs from './AvailableJobs';
 import CustomerShipments from './CustomerShipments';
 import InvoiceManagement from './InvoiceManagement';
@@ -146,17 +142,6 @@ const AppContent: React.FC = () => {
         return <VehicleRegistration />;
       case 'verification':
         return <VerificationDashboard />;
-      case 'operational-flow':
-        switch (userRole) {
-          case 'logistics':
-            return <LogisticsOperationalFlow />;
-          case 'operator':
-            return <OperatorOperationalFlow />;
-          case 'customer':
-            return <CustomerOperationalFlow />;
-          default:
-            return <OperationalFlow />;
-        }
       default:
         return <Dashboard userRole={userRole!} onTabChange={handleTabChange} />;
     }

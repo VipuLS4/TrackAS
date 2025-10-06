@@ -2,9 +2,6 @@ import React from 'react';
 import { Package, Truck, Clock, CheckCircle, TrendingUp, MapPin, Users, CreditCard } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import QuickActions from './QuickActions';
-import LogisticsOperationalFlow from './LogisticsOperationalFlow';
-import OperatorOperationalFlow from './OperatorOperationalFlow';
-import CustomerOperationalFlow from './CustomerOperationalFlow';
 
 interface DashboardProps {
   userRole: 'logistics' | 'operator' | 'customer';
@@ -128,19 +125,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onTabChange }) => {
             shipment.status === 'pending' ? 'warning' : 'info'
   }));
 
-  const renderOperationalFlow = () => {
-    switch (userRole) {
-      case 'logistics':
-        return <LogisticsOperationalFlow />;
-      case 'operator':
-        return <OperatorOperationalFlow />;
-      case 'customer':
-        return <CustomerOperationalFlow />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto">
       {/* Dashboard Overview */}
@@ -150,9 +134,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onTabChange }) => {
         <div className="flex items-center justify-between">
           <p className="text-gray-600">Welcome back! Here's what's happening with your logistics operations.</p>
           <div className="hidden md:flex items-center space-x-2 bg-white px-3 py-1 rounded-full shadow-sm border">
-            <img 
-              src="/Vipul.png" 
-              alt="Vipul Sharma" 
+            <img
+              src="/Vipul.png"
+              alt="Vipul Sharma"
               className="h-5 w-5 rounded-full object-cover"
             />
             <span className="text-xs text-gray-600">Build by Vipul Sharma</span>
@@ -211,17 +195,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onTabChange }) => {
 
         {/* Quick Actions */}
         <div>
-          <QuickActions 
-            userRole={userRole} 
-            onActionClick={(action) => onTabChange?.(action)} 
+          <QuickActions
+            userRole={userRole}
+            onActionClick={(action) => onTabChange?.(action)}
           />
         </div>
       </div>
-      </div>
-
-      {/* Operational Flow Section */}
-      <div className="bg-gray-50 border-t border-gray-200">
-        {renderOperationalFlow()}
       </div>
     </div>
   );
