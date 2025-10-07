@@ -16,14 +16,17 @@ import {
   AlertCircle,
   Upload,
   Hash,
-  Calendar
+  Calendar,
+  Download,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import VerificationService from '../services/verificationService';
 
 const UnifiedRegistration: React.FC = () => {
   const { signIn } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedRole, setSelectedRole] = useState<'logistics' | 'operator'>('logistics');
+  const [selectedRole, setSelectedRole] = useState<'shipper' | 'fleet' | 'individual'>('shipper');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,23 +44,31 @@ const UnifiedRegistration: React.FC = () => {
     otp: '',
     emailOtp: '',
     
-    // Company Information
+    // Shipper Information
     companyName: '',
     companyAddress: '',
     tin: '',
     businessRegistrationNumber: '',
     contactPerson: '',
-    fleetSize: '',
-    
-    // Operator Information
-    vehicleType: 'truck',
-    vehicleRegistrationNumber: '',
-    driverLicenseNumber: '',
-    vehicleWeightCapacity: '',
-    vehicleVolumeCapacity: '',
+    contactEmail: '',
+    contactPhone: '',
     bankAccountNumber: '',
     bankIFSC: '',
     bankAccountHolder: '',
+    
+    // Fleet Operator Information
+    fleetSize: '',
+    subscriptionModel: 'pay_per_shipment',
+    selectedFleetPlan: 'small',
+    
+    // Individual Operator Information
+    address: '',
+    driverLicenseNumber: '',
+    licenseExpiryDate: '',
+    vehicleType: 'truck',
+    vehicleRegistrationNumber: '',
+    vehicleWeightCapacity: '',
+    vehicleVolumeCapacity: '',
     
     // Security
     captcha: '',
@@ -68,23 +79,79 @@ const UnifiedRegistration: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, File>>({});
+  const [docUploadProgress, setDocUploadProgress] = useState<Record<string, number>>({});
+  const [verificationService] = useState(() => VerificationService.getInstance());
 
   const roles = [
     {
-      id: 'logistics' as const,
-      title: 'Logistics Company',
-      description: 'Register your company to manage fleet and shipments',
+      id: 'shipper' as const,
+      title: 'Shipper (Logistics Company)',
+      description: 'Register your company to create and manage shipments',
       icon: Building2,
       color: 'bg-blue-600',
-      features: ['Fleet Management', 'Shipment Creation', 'Analytics Dashboard', 'Operator Management']
+      features: ['Create Shipments', 'Track Deliveries', 'Manage Payments', 'Rate Operators']
     },
     {
-      id: 'operator' as const,
-      title: 'Operator/Driver',
-      description: 'Register as an independent operator to accept shipments',
+      id: 'fleet' as const,
+      title: 'Fleet Operator',
+      description: 'Register your fleet company with vehicles and drivers',
       icon: Truck,
       color: 'bg-green-600',
-      features: ['Job Assignments', 'Route Optimization', 'Earnings Tracking', 'Performance Metrics']
+      features: ['Fleet Management', 'Driver Assignment', 'Subscription Plans', 'Earnings Tracking']
+    },
+    {
+      id: 'individual' as const,
+      title: 'Individual Vehicle Owner',
+      description: 'Register as a single driver-owner to accept shipments',
+      icon: User,
+      color: 'bg-purple-600',
+      features: ['Direct Assignments', 'Route Navigation', 'Earnings Tracking', 'Performance Metrics']
+    }
+  ];
+
+  const fleetSubscriptionPlans = [
+    {
+      id: 'small' as const,
+      name: 'Small Fleet',
+      price: '₹5,000/month',
+      description: 'For fleets with 1-5 vehicles',
+      vehicleRange: '1-5 vehicles',
+      features: [
+        'Basic fleet management',
+        'Standard support',
+        'Monthly reports',
+        'Email notifications'
+      ],
+      color: 'bg-gray-500'
+    },
+    {
+      id: 'medium' as const,
+      name: 'Medium Fleet',
+      price: '₹15,000/month',
+      description: 'For fleets with 6-20 vehicles',
+      vehicleRange: '6-20 vehicles',
+      features: [
+        'Advanced fleet management',
+        'Priority support',
+        'Real-time analytics',
+        'Route optimization'
+      ],
+      color: 'bg-blue-500'
+    },
+    {
+      id: 'large' as const,
+      name: 'Large Fleet',
+      price: '₹35,000/month',
+      description: 'For fleets with 21+ vehicles',
+      vehicleRange: '21+ vehicles',
+      features: [
+        'Enterprise fleet management',
+        '24/7 support',
+        'Advanced analytics',
+        'Custom integrations',
+        'Dedicated account manager'
+      ],
+      color: 'bg-purple-500'
     }
   ];
 
@@ -121,6 +188,16 @@ const UnifiedRegistration: React.FC = () => {
       
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match';
+      }
+      
+      // Role-specific validation
+      if (selectedRole === 'shipper') {
+        if (!formData.companyName.trim()) newErrors.companyName = 'Company name is required';
+        if (!formData.tin.trim()) newErrors.tin = 'TIN is required';
+        if (!formData.bankAccountNumber.trim()) newErrors.bankAccountNumber = 'Bank account number is required';
+      } else if (selectedRole === 'individual') {
+        if (!formData.address.trim()) newErrors.address = 'Address is required';
+        if (!formData.driverLicenseNumber.trim()) newErrors.driverLicenseNumber = 'Driver license number is required';
       }
     }
 
@@ -217,8 +294,45 @@ const UnifiedRegistration: React.FC = () => {
     }
   };
 
-  const handleFileUpload = (docType: string, file: File) => {
-    setUploadedDocs(prev => ({ ...prev, [docType]: file }));
+  const handleFileUpload = async (docType: string, file: File) => {
+    try {
+      setDocUploadProgress(prev => ({ ...prev, [docType]: 0 }));
+      
+      // Simulate file upload progress
+      for (let progress = 0; progress <= 100; progress += 10) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        setDocUploadProgress(prev => ({ ...prev, [docType]: progress }));
+      }
+      
+      setUploadedDocs(prev => ({ ...prev, [docType]: file }));
+      
+      // Validate document based on type
+      const validation = await verificationService.validateDocument(
+        URL.createObjectURL(file), 
+        docType
+      );
+      
+      if (!validation.isValid) {
+        setErrors(prev => ({ 
+          ...prev, 
+          [docType]: 'Invalid document format. Please upload a valid file.' 
+        }));
+        return;
+      }
+      
+      // Clear any previous errors for this document
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[docType];
+        return newErrors;
+      });
+      
+    } catch (error) {
+      setErrors(prev => ({ 
+        ...prev, 
+        [docType]: 'Failed to upload document. Please try again.' 
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -236,17 +350,42 @@ const UnifiedRegistration: React.FC = () => {
         password: formData.password, // In production, this would be hashed on the backend
         emailVerified,
         phoneVerified,
-        ...(selectedRole === 'logistics' ? {
+        ...(selectedRole === 'shipper' ? {
           companyName: formData.companyName,
           companyAddress: formData.companyAddress,
           tin: formData.tin,
           businessRegistrationNumber: formData.businessRegistrationNumber,
           contactPerson: formData.contactPerson,
-          fleetSize: formData.fleetSize ? parseInt(formData.fleetSize) : null
+          contactEmail: formData.contactEmail,
+          contactPhone: formData.contactPhone,
+          bankDetails: {
+            accountNumber: formData.bankAccountNumber,
+            ifscCode: formData.bankIFSC,
+            accountHolder: formData.bankAccountHolder
+          }
+        } : selectedRole === 'fleet' ? {
+          companyName: formData.companyName,
+          companyAddress: formData.companyAddress,
+          tin: formData.tin,
+          businessRegistrationNumber: formData.businessRegistrationNumber,
+          contactPerson: formData.contactPerson,
+          contactEmail: formData.contactEmail,
+          contactPhone: formData.contactPhone,
+          fleetSize: formData.fleetSize ? parseInt(formData.fleetSize) : null,
+          subscriptionModel: formData.subscriptionModel,
+          selectedFleetPlan: formData.selectedFleetPlan,
+          bankDetails: {
+            accountNumber: formData.bankAccountNumber,
+            ifscCode: formData.bankIFSC,
+            accountHolder: formData.bankAccountHolder
+          }
         } : {
+          // Individual operator registration data
+          address: formData.address,
+          driverLicenseNumber: formData.driverLicenseNumber,
+          licenseExpiryDate: formData.licenseExpiryDate,
           vehicleType: formData.vehicleType,
           vehicleRegistrationNumber: formData.vehicleRegistrationNumber,
-          driverLicenseNumber: formData.driverLicenseNumber,
           vehicleWeightCapacity: parseFloat(formData.vehicleWeightCapacity),
           vehicleVolumeCapacity: parseFloat(formData.vehicleVolumeCapacity),
           bankDetails: {
@@ -258,18 +397,82 @@ const UnifiedRegistration: React.FC = () => {
         uploadedDocuments: Object.keys(uploadedDocs),
         twoFactorEnabled: formData.twoFactorEnabled,
         registrationDate: new Date().toISOString(),
-        status: 'pending_approval'
+        status: 'pending_verification'
       };
 
-      // Simulate API call
+      // Simulate API call to create user profile
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      alert('Registration submitted successfully! You will receive approval updates within 24-48 hours.');
+      // Start verification process
+      await startVerificationProcess(registrationData);
+
+      alert('Registration submitted successfully! Your documents are being verified. You will receive updates via email/SMS.');
       setCurrentStep(6); // Success step
     } catch (error) {
       setErrors(prev => ({ ...prev, submit: 'Registration failed. Please try again.' }));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const startVerificationProcess = async (registrationData: any) => {
+    try {
+      // Simulate creating user profile
+      const userProfileId = `profile-${Date.now()}`;
+      
+      // Start automated verification checks
+      if (selectedRole === 'shipper') {
+        // PAN verification
+        if (formData.tin) {
+          const panResult = await verificationService.verifyPAN(formData.tin);
+          await verificationService.logVerificationResult(
+            userProfileId,
+            'pan',
+            panResult.status,
+            panResult.result,
+            panResult.failureReason
+          );
+        }
+      } else if (selectedRole === 'fleet') {
+        // GST verification
+        if (formData.tin) {
+          const gstResult = await verificationService.verifyGST(formData.tin);
+          await verificationService.logVerificationResult(
+            userProfileId,
+            'gst',
+            gstResult.status,
+            gstResult.result,
+            gstResult.failureReason
+          );
+        }
+      }
+
+      // Document integrity checks
+      for (const [docType, file] of Object.entries(uploadedDocs)) {
+        const validation = await verificationService.validateDocument(
+          URL.createObjectURL(file),
+          docType
+        );
+        
+        await verificationService.logVerificationResult(
+          userProfileId,
+          'document_integrity',
+          validation.isValid ? 'verified' : 'failed',
+          validation,
+          validation.isValid ? undefined : 'Document validation failed'
+        );
+      }
+
+      // Check if all verifications are complete
+      const isComplete = await verificationService.checkVerificationCompletion(userProfileId);
+      
+      if (isComplete) {
+        // Send notification to admin for manual review
+        console.log('All automated verifications complete. Ready for admin review.');
+      }
+
+    } catch (error) {
+      console.error('Error in verification process:', error);
     }
   };
 
@@ -449,6 +652,7 @@ const UnifiedRegistration: React.FC = () => {
             </div>
           )}
 
+
           {/* Step 2: Basic Information */}
           {currentStep === 2 && (
             <div>
@@ -567,6 +771,86 @@ const UnifiedRegistration: React.FC = () => {
                   </div>
                   {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
                 </div>
+
+                {/* Role-specific fields */}
+                {selectedRole === 'shipper' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Company Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="companyName"
+                        value={formData.companyName}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          errors.companyName ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter company name"
+                      />
+                      {errors.companyName && <p className="text-red-500 text-sm mt-1">{errors.companyName}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        TIN Number *
+                      </label>
+                      <input
+                        type="text"
+                        name="tin"
+                        value={formData.tin}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          errors.tin ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter TIN number"
+                      />
+                      {errors.tin && <p className="text-red-500 text-sm mt-1">{errors.tin}</p>}
+                    </div>
+                  </>
+                )}
+
+                {selectedRole === 'individual' && (
+                  <>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Address *
+                      </label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          type="text"
+                          name="address"
+                          value={formData.address}
+                          onChange={handleChange}
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            errors.address ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="Enter your complete address"
+                        />
+                      </div>
+                      {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Driver License Number *
+                      </label>
+                      <input
+                        type="text"
+                        name="driverLicenseNumber"
+                        value={formData.driverLicenseNumber}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                          errors.driverLicenseNumber ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter driver license number"
+                      />
+                      {errors.driverLicenseNumber && <p className="text-red-500 text-sm mt-1">{errors.driverLicenseNumber}</p>}
+                    </div>
+                  </>
+                )}
 
                 <div className="md:col-span-2">
                   <div className="flex items-center">

@@ -3,6 +3,7 @@ import { AppProvider } from '../context/AppContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { DatabaseProvider } from '../context/DatabaseContext';
 import AuthLogin from './AuthLogin';
+import MarketingLoginPage from './MarketingLoginPage';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Dashboard from './Dashboard';
@@ -27,12 +28,21 @@ import UnifiedRegistration from './UnifiedRegistration';
 import DedicatedLoginPages from './DedicatedLoginPages';
 import PredictiveETA from './PredictiveETA';
 import CustomerTrackingPortal from './CustomerTrackingPortal';
-import EnhancedAdminDashboard from './EnhancedAdminDashboard';
+import AdminVerificationDashboard from './AdminVerificationDashboard';
+import AdminShipmentDashboard from './AdminShipmentDashboard';
+import DriverApp from './DriverApp';
+import FeedbackAndRatings from './FeedbackAndRatings';
+import AdminDashboard from './AdminDashboard';
+import ShipperDashboard from './ShipperDashboard';
+import FleetOperatorDashboard from './FleetOperatorDashboard';
+import IndividualVehicleOwnerDashboard from './IndividualVehicleOwnerDashboard';
 import ShipperPortal from './ShipperPortal';
+import AIAssistant from './AIAssistant';
+import CustomerTrackingPortal from './CustomerTrackingPortal';
 
 const AppContent: React.FC = () => {
   const { state: authState } = useAuth();
-  const [userRole, setUserRole] = useState<'admin' | 'logistics' | 'operator' | 'customer' | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'shipper' | 'fleet' | 'individual' | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -42,7 +52,7 @@ const AppContent: React.FC = () => {
     }
   }, [authState]);
 
-  const handleLogin = (role: 'admin' | 'logistics' | 'operator' | 'customer', _userData?: unknown) => {
+  const handleLogin = (role: 'admin' | 'shipper' | 'fleet' | 'individual', _userData?: unknown) => {
     setUserRole(role);
     setActiveTab('dashboard');
   };
@@ -57,11 +67,17 @@ const AppContent: React.FC = () => {
     if (userRole === 'admin') {
       switch (activeTab) {
         case 'dashboard':
-          return <EnhancedAdminDashboard />;
+          return <AdminDashboard />;
         case 'approvals':
           return <ShipmentApproval userRole="admin" />;
         case 'verification':
-          return <VerificationDashboard />;
+          return <AdminVerificationDashboard />;
+        case 'shipments':
+          return <AdminShipmentDashboard />;
+        case 'payments':
+          return <PaymentManagementDashboard />;
+        case 'subscriptions':
+          return <FleetSubscriptionManagement />;
         case 'disputes':
           return <DisputeManagement />;
         case 'analytics':
@@ -81,10 +97,73 @@ const AppContent: React.FC = () => {
       }
     }
 
-    // Logistics/Shipper content
-    if (userRole === 'logistics') {
-      if (activeTab === 'dashboard') {
-        return <ShipperPortal />;
+    // Shipper content
+    if (userRole === 'shipper') {
+      switch (activeTab) {
+        case 'dashboard':
+          return <ShipperDashboard />;
+        case 'create-shipment':
+          return <CreateShipment />;
+        case 'my-shipments':
+          return <ShipperDashboard />;
+        case 'tracking':
+          return <ShipperDashboard />;
+        case 'billing':
+          return <ShipperDashboard />;
+        case 'analytics':
+          return <ShipperDashboard />;
+        default:
+          return <ShipperDashboard />;
+      }
+    }
+
+    // Fleet Operator content
+    if (userRole === 'fleet') {
+      switch (activeTab) {
+        case 'dashboard':
+          return <FleetOperatorDashboard />;
+        case 'fleet-management':
+          return <OperatorManagement />;
+        case 'subscriptions':
+          return <FleetOperatorDashboard />;
+        case 'earnings':
+          return <FleetOperatorDashboard />;
+        case 'requests':
+          return <FleetOperatorDashboard />;
+        case 'fleet-tracker':
+          return <FleetOperatorDashboard />;
+        case 'maintenance':
+          return <FleetOperatorDashboard />;
+        default:
+          return <FleetOperatorDashboard />;
+      }
+    }
+
+    // Individual Operator content
+    if (userRole === 'individual') {
+      switch (activeTab) {
+        case 'dashboard':
+          return <IndividualVehicleOwnerDashboard />;
+        case 'driver-app':
+          return <DriverApp />;
+        case 'available-jobs':
+          return <AvailableJobs />;
+        case 'earnings':
+          return <IndividualVehicleOwnerDashboard />;
+        case 'performance':
+          return <IndividualVehicleOwnerDashboard />;
+        case 'feedback':
+          return <FeedbackAndRatings />;
+        case 'jobs':
+          return <IndividualVehicleOwnerDashboard />;
+        case 'trips':
+          return <IndividualVehicleOwnerDashboard />;
+        case 'documents':
+          return <IndividualVehicleOwnerDashboard />;
+        case 'profile':
+          return <IndividualVehicleOwnerDashboard />;
+        default:
+          return <IndividualVehicleOwnerDashboard />;
       }
     }
 
@@ -147,9 +226,28 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Show login if not authenticated
+  // Check if we're on customer tracking page (no auth required)
+  const isCustomerTrackingPage = window.location.pathname === '/track' || 
+                                 window.location.pathname === '/tracking' ||
+                                 window.location.search.includes('tracking_token');
+
+  if (isCustomerTrackingPage) {
+    return <CustomerTrackingPortal />;
+  }
+
+  // Show marketing login page if not authenticated
   if (!authState.isAuthenticated || !userRole) {
-    return <AuthLogin onLogin={handleLogin} />;
+    return (
+      <MarketingLoginPage 
+        onLogin={handleLogin}
+        onSignUp={() => {
+          // Handle sign up - could redirect to registration or show signup modal
+          console.log('Sign up clicked');
+        }}
+        isLoading={authState.isLoading}
+        error={authState.error}
+      />
+    );
   }
 
   return (
@@ -181,6 +279,12 @@ const AppContent: React.FC = () => {
               onClick={() => setSidebarOpen(false)}
             />
           )}
+
+          {/* AI Assistant */}
+          <AIAssistant 
+            userType={userRole || 'guest'} 
+            userId={authState.user?.id}
+          />
         </div>
       </AppProvider>
     </DatabaseProvider>

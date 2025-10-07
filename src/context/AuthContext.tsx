@@ -4,7 +4,7 @@ import { jwtDecode } from 'jwt-decode';
 interface User {
   id: string;
   email: string;
-  role: 'admin' | 'shipper' | 'fleet_operator' | 'individual_vehicle_owner' | 'customer';
+  role: 'admin' | 'shipper' | 'fleet' | 'individual';
   name: string;
   verified: boolean;
   permissions: string[];
@@ -162,11 +162,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const getRoleName = (role: string): string => {
     switch (role) {
-      case 'admin': return 'System Administrator';
-      case 'shipper': return 'Logistics Company (Shipper)';
-      case 'fleet_operator': return 'Fleet Operator';
-      case 'individual_vehicle_owner': return 'Individual Vehicle Owner';
-      case 'customer': return 'Customer';
+      case 'admin': return 'TrackAS Owner (Admin)';
+      case 'shipper': return 'Shipper (Logistics Company)';
+      case 'fleet': return 'Fleet Operator';
+      case 'individual': return 'Individual Vehicle Owner';
       default: return 'User';
     }
   };
@@ -184,20 +183,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           'create_shipments', 'set_shipment_price', 'pay_commission', 'track_shipments', 'rate_drivers',
           'approve_invoices', 'manage_company_profile', 'view_analytics'
         ];
-      case 'fleet_operator':
+      case 'fleet':
         return [
           'manage_fleet', 'receive_shipment_requests', 'assign_to_drivers', 'manage_subscriptions',
-          'view_fleet_analytics', 'monitor_vehicles', 'view_earnings', 'manage_company_profile'
+          'view_fleet_analytics', 'monitor_vehicles', 'view_earnings', 'manage_company_profile',
+          'fleet_dashboard', 'subscription_management', 'driver_assignments', 'vehicle_tracking'
         ];
-      case 'individual_vehicle_owner':
+      case 'individual':
         return [
           'mark_availability', 'receive_shipment_requests', 'accept_reject_shipments', 'navigate_routes',
-          'upload_pod', 'view_earnings', 'view_ratings', 'manage_vehicle_profile'
-        ];
-      case 'customer':
-        return [
-          'view_shipments', 'track_orders', 'download_invoices', 'provide_feedback', 'manage_profile',
-          'receive_tracking_updates'
+          'upload_pod', 'view_earnings', 'view_ratings', 'manage_vehicle_profile',
+          'direct_assignments', 'route_navigation', 'performance_tracking'
         ];
       default:
         return [];

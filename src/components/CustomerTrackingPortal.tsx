@@ -1,602 +1,750 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, 
   MapPin, 
+  Truck, 
   Clock, 
-  Package, 
+  CheckCircle, 
+  Phone, 
+  Star, 
+  MessageSquare, 
+  Camera, 
+  Shield, 
+  Eye, 
+  EyeOff, 
   Navigation, 
-  Phone,
-  MessageCircle,
-  Download,
-  Star,
-  CheckCircle,
-  Truck,
-  User,
-  AlertCircle,
+  Package, 
+  User, 
+  Calendar, 
+  AlertCircle, 
   RefreshCw,
+  Download,
   Share2,
-  Bell
+  ExternalLink
 } from 'lucide-react';
 
-interface CustomerTrackingPortalProps {
-  trackingId?: string;
+interface ShipmentDetails {
+  id: string;
+  shipperName: string;
+  consignmentDetails: {
+    items: string;
+    weight: number;
+    volume: number;
+    description: string;
+  };
+  pickupLocation: {
+    address: string;
+    city: string;
+    state: string;
+    coordinates: { lat: number; lng: number };
+  };
+  deliveryLocation: {
+    address: string;
+    city: string;
+    state: string;
+    coordinates: { lat: number; lng: number };
+  };
+  status: string;
+  currentLocation?: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  eta?: string;
+  actualDeliveryTime?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const CustomerTrackingPortal: React.FC<CustomerTrackingPortalProps> = ({ trackingId: initialTrackingId }) => {
-  const [trackingId, setTrackingId] = useState(initialTrackingId || '');
-  const [shipmentData, setShipmentData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [notificationPrefs, setNotificationPrefs] = useState({
-    sms: true,
-    email: true,
-    whatsapp: false
+interface DriverInfo {
+  name: string;
+  phone: string;
+  vehicleType: string;
+  vehicleNumber: string;
+  rating: number;
+  photo?: string;
+}
+
+interface StatusTimeline {
+  status: string;
+  timestamp: string;
+  location?: string;
+  description: string;
+  completed: boolean;
+}
+
+interface PODDetails {
+  images: string[];
+  signature: string;
+  deliveryTime: string;
+  notes?: string;
+}
+
+interface FeedbackData {
+  rating: number;
+  comments: string;
+  categories: {
+    timeliness: number;
+    communication: number;
+    handling: number;
+    overall: number;
+  };
+}
+
+const CustomerTrackingPortal: React.FC = () => {
+  const [shipmentDetails, setShipmentDetails] = useState<ShipmentDetails | null>(null);
+  const [driverInfo, setDriverInfo] = useState<DriverInfo | null>(null);
+  const [statusTimeline, setStatusTimeline] = useState<StatusTimeline[]>([]);
+  const [podDetails, setPodDetails] = useState<PODDetails | null>(null);
+  const [feedbackData, setFeedbackData] = useState<FeedbackData>({
+    rating: 0,
+    comments: '',
+    categories: {
+      timeliness: 0,
+      communication: 0,
+      handling: 0,
+      overall: 0
+    }
   });
+  const [showDriverPhone, setShowDriverPhone] = useState(false);
+  const [activeTab, setActiveTab] = useState('tracking');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+  // Get tracking token from URL
+  const trackingToken = new URLSearchParams(window.location.search).get('token');
 
   useEffect(() => {
-    if (initialTrackingId) {
-      handleTrackShipment();
+    if (trackingToken) {
+      loadTrackingData(trackingToken);
+    } else {
+      setError('Invalid tracking link. Please check your tracking URL.');
+      setLoading(false);
     }
-  }, [initialTrackingId]);
+  }, [trackingToken]);
 
-  const handleTrackShipment = async () => {
-    if (!trackingId.trim()) {
-      setError('Please enter a tracking ID');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-
+  const loadTrackingData = async (token: string) => {
+    setLoading(true);
     try {
-      // Simulate API call to fetch shipment data
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Mock shipment data
-      const mockShipmentData = {
-        id: trackingId,
-        status: 'in_transit',
-        progress: 65,
-        customerName: 'Rajesh Kumar',
-        customerPhone: '+91-9876543210',
-        pickupAddress: 'Connaught Place, New Delhi, Delhi 110001',
-        destinationAddress: 'Gateway of India, Mumbai, Maharashtra 400001',
-        estimatedDelivery: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-        currentLocation: 'Near Kota, Rajasthan',
-        driver: {
-          name: 'Amit Singh',
-          phone: '+91-9876543210',
-          rating: 4.9,
-          vehicle: 'HR-26-AB-1234'
+      // Simulate API call with token validation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock data - replace with actual API call
+      const mockShipment: ShipmentDetails = {
+        id: 'SHIP-001',
+        shipperName: 'XYZ Manufacturing Ltd',
+        consignmentDetails: {
+          items: 'Electronics Components',
+          weight: 500,
+          volume: 2.5,
+          description: 'High-quality electronic components for manufacturing'
         },
-        timeline: [
-          {
-            time: '08:00 AM',
-            date: 'Today',
-            message: 'Shipment created and confirmed',
-            type: 'success',
-            completed: true
-          },
-          {
-            time: '09:30 AM',
-            date: 'Today',
-            message: 'Operator assigned and notified',
-            type: 'info',
-            completed: true
-          },
-          {
-            time: '11:00 AM',
-            date: 'Today',
-            message: 'Package picked up from Delhi',
-            type: 'success',
-            completed: true
-          },
-          {
-            time: '02:30 PM',
-            date: 'Today',
-            message: 'In transit - Crossed Gurgaon',
-            type: 'info',
-            completed: true
-          },
-          {
-            time: '06:45 PM',
-            date: 'Today',
-            message: 'Currently near Kota, Rajasthan',
-            type: 'info',
-            completed: true,
-            current: true
-          },
-          {
-            time: '11:30 PM',
-            date: 'Today',
-            message: 'Expected to reach Udaipur',
-            type: 'info',
-            completed: false
-          },
-          {
-            time: '08:00 AM',
-            date: 'Tomorrow',
-            message: 'Expected delivery in Mumbai',
-            type: 'success',
-            completed: false
-          }
-        ],
-        packageDetails: {
-          weight: '25 kg',
-          dimensions: '50x40x30 cm',
-          value: '₹15,000',
-          specialHandling: 'Fragile items'
+        pickupLocation: {
+          address: '123 Industrial Area, Sector 18',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          coordinates: { lat: 19.0760, lng: 72.8777 }
         },
-        liveUpdates: [
-          { time: '6:45 PM', message: 'Vehicle moving at 65 km/h on NH-8', location: 'Kota, Rajasthan' },
-          { time: '6:30 PM', message: 'Rest stop completed, journey resumed', location: 'Highway Rest Area' },
-          { time: '5:15 PM', message: 'Scheduled rest stop for driver', location: 'Dharuhera, Haryana' }
-        ]
+        deliveryLocation: {
+          address: '456 Business Park, Connaught Place',
+          city: 'Delhi',
+          state: 'Delhi',
+          coordinates: { lat: 28.6139, lng: 77.2090 }
+        },
+        status: 'IN_TRANSIT',
+        currentLocation: {
+          lat: 19.4326,
+          lng: 72.8356,
+          address: 'Near Vadodara, Gujarat'
+        },
+        eta: '2 hours 30 minutes',
+        createdAt: '2024-01-15T06:00:00Z',
+        updatedAt: '2024-01-15T14:30:00Z'
       };
 
-      setShipmentData(mockShipmentData);
-    } catch (err) {
-      setError('Shipment not found. Please check your tracking ID.');
+      const mockDriver: DriverInfo = {
+        name: 'Amit Singh',
+        phone: '+91 98765 43210',
+        vehicleType: 'Truck',
+        vehicleNumber: 'MH-01-AB-1234',
+        rating: 4.8,
+        photo: '/api/placeholder/100/100'
+      };
+
+      const mockTimeline: StatusTimeline[] = [
+        {
+          status: 'CREATED',
+          timestamp: '2024-01-15T06:00:00Z',
+          description: 'Shipment created by shipper',
+          completed: true
+        },
+        {
+          status: 'ASSIGNED',
+          timestamp: '2024-01-15T08:30:00Z',
+          description: 'Assigned to fleet operator',
+          completed: true
+        },
+        {
+          status: 'PICKED_UP',
+          timestamp: '2024-01-15T10:15:00Z',
+          location: 'Mumbai, Maharashtra',
+          description: 'Package picked up from shipper',
+          completed: true
+        },
+        {
+          status: 'IN_TRANSIT',
+          timestamp: '2024-01-15T10:30:00Z',
+          location: 'En route to Delhi',
+          description: 'Package in transit',
+          completed: true
+        },
+        {
+          status: 'DELIVERED',
+          timestamp: '',
+          description: 'Package delivered to recipient',
+          completed: false
+        }
+      ];
+
+      setShipmentDetails(mockShipment);
+      setDriverInfo(mockDriver);
+      setStatusTimeline(mockTimeline);
+
+      // Load POD details if delivered
+      if (mockShipment.status === 'DELIVERED') {
+        const mockPOD: PODDetails = {
+          images: ['/api/placeholder/400/300', '/api/placeholder/400/300'],
+          signature: '/api/placeholder/300/150',
+          deliveryTime: '2024-01-15T16:45:00Z',
+          notes: 'Package delivered in good condition'
+        };
+        setPodDetails(mockPOD);
+      }
+
+    } catch (error) {
+      console.error('Error loading tracking data:', error);
+      setError('Failed to load tracking information. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleNotificationUpdate = async (channel: string, enabled: boolean) => {
-    setNotificationPrefs(prev => ({ ...prev, [channel]: enabled }));
-    // In real app, this would update notification preferences
+  const handleFeedbackSubmit = async () => {
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setFeedbackSubmitted(true);
+      alert('Thank you for your feedback! Your response has been recorded.');
+    } catch (error) {
+      alert('Failed to submit feedback. Please try again.');
+    }
+  };
+
+  const handleCallDriver = () => {
+    if (driverInfo) {
+      window.open(`tel:${driverInfo.phone}`);
+    }
   };
 
   const handleShareTracking = () => {
-    const shareUrl = `${window.location.origin}/track/${trackingId}`;
-    navigator.clipboard.writeText(shareUrl);
-    alert('Tracking link copied to clipboard!');
+    if (navigator.share) {
+      navigator.share({
+        title: 'Track Your Shipment',
+        text: `Track your shipment ${shipmentDetails?.id}`,
+        url: window.location.href
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Tracking link copied to clipboard!');
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'delivered': return 'text-green-600 bg-green-50';
-      case 'in_transit': return 'text-blue-600 bg-blue-50';
-      case 'picked_up': return 'text-yellow-600 bg-yellow-50';
-      case 'assigned': return 'text-purple-600 bg-purple-50';
-      case 'pending': return 'text-gray-600 bg-gray-50';
-      default: return 'text-gray-600 bg-gray-50';
+      case 'CREATED': return 'bg-blue-100 text-blue-800';
+      case 'ASSIGNED': return 'bg-yellow-100 text-yellow-800';
+      case 'PICKED_UP': return 'bg-green-100 text-green-800';
+      case 'IN_TRANSIT': return 'bg-purple-100 text-purple-800';
+      case 'DELIVERED': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'delivered': return 'Delivered';
-      case 'in_transit': return 'In Transit';
-      case 'picked_up': return 'Picked Up';
-      case 'assigned': return 'Assigned';
-      case 'pending': return 'Pending';
-      default: return status;
+      case 'CREATED': return <Package className="h-5 w-5" />;
+      case 'ASSIGNED': return <User className="h-5 w-5" />;
+      case 'PICKED_UP': return <Truck className="h-5 w-5" />;
+      case 'IN_TRANSIT': return <Navigation className="h-5 w-5" />;
+      case 'DELIVERED': return <CheckCircle className="h-5 w-5" />;
+      default: return <Package className="h-5 w-5" />;
     }
   };
+
+  const maskPhoneNumber = (phone: string) => {
+    return phone.replace(/(\d{2})(\d{3})(\d{4})(\d{4})/, '+91 $2***$4');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading tracking information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Tracking Error</h1>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!shipmentDetails || !driverInfo) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">No tracking information found.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <img src="/LOGO.png" alt="TrackAS Logo" className="h-10 w-auto" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Track Your Shipment</h1>
-                <p className="text-sm text-gray-600">Real-time tracking powered by AI</p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Track Your Shipment</h1>
+              <p className="text-gray-600">Shipment ID: {shipmentDetails.id}</p>
             </div>
-            
-            <div className="hidden md:flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-blue-700 font-medium">Live Tracking</span>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleShareTracking}
+                className="p-2 text-gray-600 hover:text-gray-900"
+                title="Share Tracking Link"
+              >
+                <Share2 className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="p-2 text-gray-600 hover:text-gray-900"
+                title="Refresh"
+              >
+                <RefreshCw className="h-5 w-5" />
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Search Section */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 mb-8">
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Enter Your Tracking ID</h2>
-            <p className="text-gray-600">Track your shipment in real-time with AI-powered updates</p>
-          </div>
-          
-          <div className="max-w-md mx-auto">
-            <div className="flex space-x-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={trackingId}
-                  onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter tracking ID (e.g., TAS-2024-001)"
-                  onKeyPress={(e) => e.key === 'Enter' && handleTrackShipment()}
-                />
-              </div>
-              <button
-                onClick={handleTrackShipment}
-                disabled={isLoading}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center space-x-2"
-              >
-                {isLoading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-                <span>Track</span>
-              </button>
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Shipment Overview Card */}
+        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                {shipmentDetails.consignmentDetails.items}
+              </h2>
+              <p className="text-gray-600 mb-1">
+                From: {shipmentDetails.pickupLocation.city}, {shipmentDetails.pickupLocation.state}
+              </p>
+              <p className="text-gray-600">
+                To: {shipmentDetails.deliveryLocation.city}, {shipmentDetails.deliveryLocation.state}
+              </p>
             </div>
-            
-            {error && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="h-4 w-4 text-red-600" />
-                  <p className="text-red-700 text-sm">{error}</p>
+            <div className="text-right">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(shipmentDetails.status)}`}>
+                {shipmentDetails.status.replace('_', ' ')}
+              </span>
+              {shipmentDetails.eta && (
+                <p className="text-sm text-gray-600 mt-2">
+                  ETA: {shipmentDetails.eta}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Current Location */}
+          {shipmentDetails.currentLocation && (
+            <div className="bg-blue-50 rounded-lg p-4 mb-4">
+              <div className="flex items-center">
+                <MapPin className="h-5 w-5 text-blue-600 mr-2" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900">Current Location</p>
+                  <p className="text-sm text-blue-700">{shipmentDetails.currentLocation.address}</p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Package Details */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <span className="text-gray-600">Weight:</span>
+              <span className="font-medium ml-2">{shipmentDetails.consignmentDetails.weight} kg</span>
+            </div>
+            <div>
+              <span className="text-gray-600">Volume:</span>
+              <span className="font-medium ml-2">{shipmentDetails.consignmentDetails.volume} m³</span>
+            </div>
+            <div>
+              <span className="text-gray-600">Shipper:</span>
+              <span className="font-medium ml-2">{shipmentDetails.shipperName}</span>
+            </div>
           </div>
         </div>
 
-        {/* Shipment Details */}
-        {shipmentData && (
-          <div className="space-y-8">
-            {/* Status Overview */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900">Shipment {shipmentData.id}</h3>
-                  <p className="text-gray-600">Customer: {shipmentData.customerName}</p>
-                </div>
-                
-                <div className="text-right">
-                  <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(shipmentData.status)}`}>
-                    {getStatusText(shipmentData.status)}
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    ETA: {new Date(shipmentData.estimatedDelivery).toLocaleString()}
+        {/* Tabs */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              {[
+                { id: 'tracking', label: 'Live Tracking', icon: MapPin },
+                { id: 'timeline', label: 'Status Timeline', icon: Clock },
+                { id: 'driver', label: 'Driver Info', icon: User },
+                { id: 'delivery', label: 'Delivery', icon: CheckCircle },
+                { id: 'feedback', label: 'Feedback', icon: Star }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <tab.icon className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'tracking' && (
+          <div className="space-y-6">
+            {/* Live Map */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Live Tracking Map</h3>
+              <div className="bg-gray-200 rounded-lg h-64 flex items-center justify-center">
+                <div className="text-center">
+                  <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-600">Interactive map would be displayed here</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Current location: {shipmentDetails.currentLocation?.address}
                   </p>
                 </div>
               </div>
-
-              {/* Progress Bar */}
-              <div className="mb-6">
-                <div className="flex justify-between text-sm text-gray-600 mb-2">
-                  <span>Delivery Progress</span>
-                  <span>{shipmentData.progress}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${shipmentData.progress}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Route Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <MapPin className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-800">Pickup Location</span>
-                  </div>
-                  <p className="text-sm text-green-700">{shipmentData.pickupAddress}</p>
-                </div>
-                
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <MapPin className="h-4 w-4 text-red-600" />
-                    <span className="text-sm font-medium text-red-800">Destination</span>
-                  </div>
-                  <p className="text-sm text-red-700">{shipmentData.destinationAddress}</p>
-                </div>
-              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Live Map */}
-              <div className="lg:col-span-2">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Live Location</h3>
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-sm text-gray-600">Live</span>
-                      </div>
-                      <button
-                        onClick={() => window.location.reload()}
-                        className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                      >
-                        <RefreshCw className="h-4 w-4 text-gray-600" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg h-64 flex items-center justify-center relative">
-                    <div className="text-center">
-                      <Navigation className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                      <p className="text-lg font-medium text-gray-900">Interactive Map</p>
-                      <p className="text-sm text-gray-600">Real-time GPS tracking</p>
-                    </div>
-                    
-                    {/* Mock GPS indicators */}
-                    <div className="absolute top-4 left-4 bg-green-500 w-3 h-3 rounded-full animate-pulse"></div>
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      <div className="bg-blue-500 w-4 h-4 rounded-full flex items-center justify-center">
-                        <Truck className="h-2 w-2 text-white" />
-                      </div>
-                    </div>
-                    <div className="absolute bottom-4 right-4 bg-red-500 w-3 h-3 rounded-full"></div>
-                  </div>
-
-                  <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <MapPin className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-800">Current Location</span>
-                    </div>
-                    <p className="text-sm text-blue-700">{shipmentData.currentLocation}</p>
-                    <p className="text-xs text-blue-600 mt-1">
-                      Last updated: {new Date().toLocaleTimeString()}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Live Updates */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Live Updates</h3>
-                  <div className="space-y-3">
-                    {shipmentData.liveUpdates.map((update: any, index: number) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-gray-900">{update.message}</p>
-                            <span className="text-xs text-gray-500">{update.time}</span>
-                          </div>
-                          <p className="text-xs text-gray-600 mt-1">{update.location}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Sidebar */}
-              <div className="space-y-6">
-                {/* Driver Information */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Driver Information</h3>
-                  
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-blue-100 p-3 rounded-full">
-                      <User className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{shipmentData.driver.name}</p>
-                      <div className="flex items-center space-x-1">
-                        <Star className="h-3 w-3 text-yellow-500" />
-                        <span className="text-sm text-gray-600">{shipmentData.driver.rating} rating</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Vehicle:</span>
-                      <span className="text-sm font-medium">{shipmentData.driver.vehicle}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Phone:</span>
-                      <span className="text-sm font-medium">{shipmentData.driver.phone}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-2 mt-4">
-                    <button className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1">
-                      <Phone className="h-4 w-4" />
-                      <span>Call</span>
-                    </button>
-                    <button className="flex-1 bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-1">
-                      <MessageCircle className="h-4 w-4" />
-                      <span>Chat</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Package Details */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Package Details</h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Weight:</span>
-                      <span className="text-sm font-medium">{shipmentData.packageDetails.weight}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Dimensions:</span>
-                      <span className="text-sm font-medium">{shipmentData.packageDetails.dimensions}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Value:</span>
-                      <span className="text-sm font-medium">{shipmentData.packageDetails.value}</span>
-                    </div>
-                    {shipmentData.packageDetails.specialHandling && (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                        <div className="flex items-center space-x-2">
-                          <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                          <span className="text-sm font-medium text-yellow-800">Special Handling</span>
-                        </div>
-                        <p className="text-sm text-yellow-700 mt-1">{shipmentData.packageDetails.specialHandling}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Notification Preferences */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Notification Preferences</h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <MessageCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-gray-700">SMS Updates</span>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={notificationPrefs.sms}
-                          onChange={(e) => handleNotificationUpdate('sms', e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Bell className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm text-gray-700">Email Updates</span>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={notificationPrefs.email}
-                          onChange={(e) => handleNotificationUpdate('email', e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <MessageCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-gray-700">WhatsApp</span>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={notificationPrefs.whatsapp}
-                          onChange={(e) => handleNotificationUpdate('whatsapp', e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-                  
-                  <div className="space-y-3">
-                    <button
-                      onClick={handleShareTracking}
-                      className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      <span>Share Tracking</span>
-                    </button>
-                    
-                    {shipmentData.status === 'delivered' && (
-                      <>
-                        <button className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2">
-                          <Download className="h-4 w-4" />
-                          <span>Download Invoice</span>
-                        </button>
-                        
-                        <button className="w-full bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center space-x-2">
-                          <Star className="h-4 w-4" />
-                          <span>Rate Service</span>
-                        </button>
-                      </>
-                    )}
-                    
-                    <button className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2">
-                      <MessageCircle className="h-4 w-4" />
-                      <span>Contact Support</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Timeline */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Shipment Timeline</h3>
-              
+            {/* Route Information */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Route Information</h3>
               <div className="space-y-4">
-                {shipmentData.timeline.map((event: any, index: number) => (
-                  <div key={index} className="flex items-start space-x-4">
-                    <div className="flex flex-col items-center">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        event.completed 
-                          ? event.current 
-                            ? 'bg-blue-500 animate-pulse' 
-                            : 'bg-green-500'
-                          : 'bg-gray-300'
-                      }`}>
-                        {event.completed ? (
-                          event.current ? (
-                            <Navigation className="h-4 w-4 text-white" />
-                          ) : (
-                            <CheckCircle className="h-4 w-4 text-white" />
-                          )
-                        ) : (
-                          <Clock className="h-4 w-4 text-gray-600" />
-                        )}
-                      </div>
-                      {index < shipmentData.timeline.length - 1 && (
-                        <div className={`w-0.5 h-8 ${event.completed ? 'bg-green-500' : 'bg-gray-300'}`} />
-                      )}
-                    </div>
-                    
-                    <div className="flex-1 pb-4">
-                      <div className="flex items-center justify-between">
-                        <p className={`text-sm font-medium ${
-                          event.completed ? 'text-gray-900' : 'text-gray-500'
-                        }`}>
-                          {event.message}
-                        </p>
-                        <div className="text-right">
-                          <p className={`text-xs ${event.completed ? 'text-gray-600' : 'text-gray-400'}`}>
-                            {event.time}
-                          </p>
-                          <p className={`text-xs ${event.completed ? 'text-gray-500' : 'text-gray-400'}`}>
-                            {event.date}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                  <div>
+                    <p className="font-medium text-gray-900">Pickup Location</p>
+                    <p className="text-sm text-gray-600">{shipmentDetails.pickupLocation.address}</p>
                   </div>
-                ))}
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                  <div>
+                    <p className="font-medium text-gray-900">Current Location</p>
+                    <p className="text-sm text-gray-600">{shipmentDetails.currentLocation?.address}</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                  <div>
+                    <p className="font-medium text-gray-900">Delivery Location</p>
+                    <p className="text-sm text-gray-600">{shipmentDetails.deliveryLocation.address}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Footer */}
-        <div className="text-center mt-12">
-          <div className="flex items-center justify-center space-x-2 text-gray-500 text-sm">
-            <span>Powered by</span>
-            <img 
-              src="/Vipul.png" 
-              alt="Vipul Sharma" 
-              className="h-5 w-5 rounded-full object-cover"
-            />
-            <span className="font-medium">TrackAS AI Technology</span>
+        {activeTab === 'timeline' && (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Shipment Status Timeline</h3>
+            <div className="space-y-4">
+              {statusTimeline.map((item, index) => (
+                <div key={index} className="flex items-start">
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center mr-4 ${
+                    item.completed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    {getStatusIcon(item.status)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-gray-900">
+                        {item.status.replace('_', ' ')}
+                      </h4>
+                      {item.timestamp && (
+                        <span className="text-sm text-gray-500">
+                          {formatDate(item.timestamp)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                    {item.location && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        <MapPin className="h-3 w-3 inline mr-1" />
+                        {item.location}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <p className="text-xs text-gray-400 mt-2">
-            Real-time tracking with 99.9% accuracy • Founded by Vipul Sharma
-          </p>
+        )}
+
+        {activeTab === 'driver' && (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Driver Information</h3>
+            <div className="flex items-start space-x-4">
+              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                <User className="h-8 w-8 text-gray-400" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-lg font-medium text-gray-900">{driverInfo.name}</h4>
+                <div className="flex items-center mt-1">
+                  <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                  <span className="text-sm text-gray-600">{driverInfo.rating} rating</span>
+                </div>
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center">
+                    <Truck className="h-4 w-4 text-gray-400 mr-2" />
+                    <span className="text-sm text-gray-600">
+                      {driverInfo.vehicleType} - {driverInfo.vehicleNumber}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <Phone className="h-4 w-4 text-gray-400 mr-2" />
+                    <span className="text-sm text-gray-600">
+                      {showDriverPhone ? driverInfo.phone : maskPhoneNumber(driverInfo.phone)}
+                    </span>
+                    <button
+                      onClick={() => setShowDriverPhone(!showDriverPhone)}
+                      className="ml-2 text-blue-600 hover:text-blue-800"
+                    >
+                      {showDriverPhone ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <button
+                    onClick={handleCallDriver}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                  >
+                    <Phone className="h-4 w-4" />
+                    <span>Call Driver</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'delivery' && (
+          <div className="space-y-6">
+            {podDetails ? (
+              <>
+                {/* Delivery Confirmation */}
+                <div className="bg-white rounded-lg shadow-sm border p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Delivery Confirmation</h3>
+                  <div className="flex items-center mb-4">
+                    <CheckCircle className="h-6 w-6 text-green-600 mr-2" />
+                    <span className="text-green-600 font-medium">Package Delivered Successfully</span>
+                  </div>
+                  <p className="text-gray-600 mb-4">
+                    Delivered on {formatDate(podDetails.deliveryTime)}
+                  </p>
+                  {podDetails.notes && (
+                    <p className="text-gray-600 mb-4">{podDetails.notes}</p>
+                  )}
+                </div>
+
+                {/* POD Images */}
+                <div className="bg-white rounded-lg shadow-sm border p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Proof of Delivery</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {podDetails.images.map((image, index) => (
+                      <div key={index} className="bg-gray-100 rounded-lg p-4">
+                        <div className="bg-gray-200 rounded-lg h-48 flex items-center justify-center">
+                          <Camera className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2 text-center">
+                          Delivery Photo {index + 1}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4">
+                    <div className="bg-gray-100 rounded-lg p-4">
+                      <div className="bg-gray-200 rounded-lg h-24 flex items-center justify-center">
+                        <span className="text-gray-600">Signature</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-2 text-center">Customer Signature</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <div className="text-center">
+                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Package Not Yet Delivered</h3>
+                  <p className="text-gray-600">
+                    Your package is still in transit. Delivery confirmation and proof of delivery will be available here once the package is delivered.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'feedback' && (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            {feedbackSubmitted ? (
+              <div className="text-center">
+                <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Thank You!</h3>
+                <p className="text-gray-600">
+                  Your feedback has been submitted successfully. We appreciate your input!
+                </p>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">Delivery Feedback</h3>
+                <div className="space-y-6">
+                  {/* Overall Rating */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Overall Rating
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => setFeedbackData(prev => ({ ...prev, rating: star }))}
+                          className={`p-1 ${star <= feedbackData.rating ? 'text-yellow-500' : 'text-gray-300'}`}
+                        >
+                          <Star className="h-6 w-6 fill-current" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Category Ratings */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-4">
+                      Rate Your Experience
+                    </label>
+                    <div className="space-y-4">
+                      {Object.entries(feedbackData.categories).map(([category, rating]) => (
+                        <div key={category} className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 capitalize">
+                            {category.replace('_', ' ')}
+                          </span>
+                          <div className="flex items-center space-x-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                onClick={() => setFeedbackData(prev => ({
+                                  ...prev,
+                                  categories: { ...prev.categories, [category]: star }
+                                }))}
+                                className={`p-1 ${star <= rating ? 'text-yellow-500' : 'text-gray-300'}`}
+                              >
+                                <Star className="h-4 w-4 fill-current" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Comments */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Additional Comments (Optional)
+                    </label>
+                    <textarea
+                      value={feedbackData.comments}
+                      onChange={(e) => setFeedbackData(prev => ({ ...prev, comments: e.target.value }))}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Share your experience with this delivery..."
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleFeedbackSubmit}
+                      disabled={feedbackData.rating === 0}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      Submit Feedback
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="bg-white border-t mt-12">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="flex items-center">
+              <Shield className="h-4 w-4 mr-1" />
+              <span>Secure tracking powered by TrackAS</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span>Need help? Contact support</span>
+              <button className="text-blue-600 hover:text-blue-800">
+                <ExternalLink className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

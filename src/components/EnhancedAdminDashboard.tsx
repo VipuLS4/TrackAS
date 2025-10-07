@@ -19,7 +19,7 @@ import {
   Globe
 } from 'lucide-react';
 import { escrowService } from '../services/escrowService';
-import { verificationService } from '../services/verificationService';
+import VerificationService from '../services/verificationService';
 import { aiAssistantService } from '../services/aiAssistantService';
 
 interface DashboardStats {
@@ -148,9 +148,9 @@ const EnhancedAdminDashboard: React.FC = () => {
       let success = false;
       
       if (action === 'approve') {
-        success = await verificationService.approveVerification(approvalId, 'admin', type as any);
+        success = await VerificationService.getInstance().approveVerification(approvalId, 'admin', type as any);
       } else {
-        success = await verificationService.rejectVerification(approvalId, 'admin', type as any, 'Rejected by admin');
+        success = await VerificationService.getInstance().rejectVerification(approvalId, 'admin', type as any, 'Rejected by admin');
       }
 
       if (success) {

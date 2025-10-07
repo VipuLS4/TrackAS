@@ -1,90 +1,39 @@
 import { supabase } from '../lib/supabase';
 
-export interface AssignmentRequest {
-  shipmentId: string;
-  pickupLocation: { lat: number; lng: number };
-  destinationLocation: { lat: number; lng: number };
+export interface AssignmentCandidate {
+  candidateId: string;
+  candidateType: 'fleet' | 'individual';
+  score: number;
   vehicleType: string;
-  weight: number;
-  urgency: 'standard' | 'urgent' | 'express';
-  specialHandling?: string;
-  price: number;
-  shipperId: string;
+  proximityKm: number;
+  reliabilityScore: number;
+  acceptanceRate: number;
+  fleetId?: string;
+  vehicleId?: string;
+  driverId?: string;
+}
+
+export interface AssignmentCycle {
+  shipmentId: string;
+  cycleNo: number;
+  targetType: 'subscribed_fleets' | 'all_eligible';
+  candidates: AssignmentCandidate[];
+  status: 'active' | 'accepted' | 'rejected' | 'timeout';
+  expiresAt: Date;
+  selectedCandidate?: AssignmentCandidate;
 }
 
 export interface AssignmentResult {
   success: boolean;
-  assignedTo?: {
-    type: 'fleet' | 'individual';
-    id: string;
-    name: string;
-    vehicleId?: string;
-    operatorId?: string;
-    vcode?: string;
-  };
-  method: 'subscription_priority' | 'fcfs' | 'dynamic_escalation';
-  responseTime: number;
-  price?: number;
-  escalationLevel?: number;
-  error?: string;
-  needsEscalation?: boolean;
-  escalationReason?: string;
-}
-
-export interface FleetAssignment {
-  fleetId: string;
-  vehicleId: string;
-  operatorId: string;
-  vcode: string;
-  distance: number;
-  estimatedArrival: number;
-  reliabilityScore: number;
-  subscriptionActive: boolean;
-}
-
-export interface IndividualAssignment {
-  operatorId: string;
-  vehicleId: string;
-  distance: number;
-  estimatedArrival: number;
-  rating: number;
-  onTimeRate: number;
-  specializations: string[];
+  assignedTo?: AssignmentCandidate;
+  cycleNo: number;
+  reason?: string;
 }
 
 export class AssignmentService {
   private static instance: AssignmentService;
-  private assignmentTimeoutSeconds = 120;
-  private maxRetries = 3;
-  private dynamicPricingConfig = {
-    first_retry: 10,
-    second_retry: 20,
-    third_retry: 0
-  };
-  private readonly RESPONSE_TIMEOUT = 2 * 60 * 1000;
-
-  constructor() {
-    this.loadAdminSettings();
-  }
-
-  private async loadAdminSettings() {
-    const { data: settings } = await supabase
-      .from('admin_settings')
-      .select('setting_key, setting_value')
-      .in('setting_key', ['assignment_timeout_seconds', 'max_assignment_retries', 'dynamic_pricing_escalation']);
-
-    if (settings) {
-      settings.forEach(setting => {
-        if (setting.setting_key === 'assignment_timeout_seconds') {
-          this.assignmentTimeoutSeconds = parseInt(setting.setting_value as string);
-        } else if (setting.setting_key === 'max_assignment_retries') {
-          this.maxRetries = parseInt(setting.setting_value as string);
-        } else if (setting.setting_key === 'dynamic_pricing_escalation') {
-          this.dynamicPricingConfig = setting.setting_value as any;
-        }
-      });
-    }
-  }
+  private readonly CYCLE_DURATION = 120; // 2 minutes in seconds
+  private readonly MAX_RETRIES = 3;
 
   public static getInstance(): AssignmentService {
     if (!AssignmentService.instance) {
@@ -93,461 +42,574 @@ export class AssignmentService {
     return AssignmentService.instance;
   }
 
-  // Main assignment logic
-  async assignShipment(request: AssignmentRequest): Promise<AssignmentResult> {
-    const startTime = Date.now();
-    
+  // Main assignment function
+  async assignShipment(shipmentId: string): Promise<AssignmentResult> {
     try {
-      // Step 1: Try subscription priority assignment
-      const subscriptionResult = await this.trySubscriptionAssignment(request);
-      if (subscriptionResult.success) {
-        return {
-          ...subscriptionResult,
-          responseTime: Date.now() - startTime,
-          method: 'subscription_priority'
-        };
+      // Get shipment details
+      const shipment = await this.getShipment(shipmentId);
+      if (!shipment) {
+        throw new Error('Shipment not found');
       }
 
-      // Step 2: Try FCFS assignment
-      const fcfsResult = await this.tryFCFSAssignment(request);
-      if (fcfsResult.success) {
-        return {
-          ...fcfsResult,
-          responseTime: Date.now() - startTime,
-          method: 'fcfs'
-        };
-      }
+      // Update status to PUBLISHED
+      await this.updateShipmentStatus(shipmentId, 'PUBLISHED');
 
-      // Step 3: Dynamic pricing escalation
-      const escalationResult = await this.tryDynamicEscalation(request, startTime);
-      return {
-        ...escalationResult,
-        responseTime: Date.now() - startTime,
-        method: 'dynamic_escalation'
-      };
-
-    } catch (error) {
-      console.error('Assignment failed:', error);
-      return {
-        success: false,
-        responseTime: Date.now() - startTime,
-        method: 'fcfs',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  }
-
-  // Subscription Priority Assignment
-  private async trySubscriptionAssignment(request: AssignmentRequest): Promise<AssignmentResult> {
-    try {
-      // Get active subscribed fleets
-      const subscribedFleets = await this.getSubscribedFleets();
-      
-      if (subscribedFleets.length === 0) {
-        return { success: false };
-      }
-
-      // Find best matching fleet
-      const bestFleet = await this.findBestFleetMatch(request, subscribedFleets);
-      if (!bestFleet) {
-        return { success: false };
-      }
-
-      // Send assignment request to fleet owner
-      const assignmentAccepted = await this.sendFleetAssignmentRequest(
-        bestFleet.fleetId,
-        bestFleet.vehicleId,
-        request
+      // Phase 1: Subscribed Fleets
+      const subscribedResult = await this.runAssignmentCycle(
+        shipmentId,
+        1,
+        'subscribed_fleets',
+        shipment
       );
 
-      if (assignmentAccepted) {
-        // Assign to specific vehicle in fleet
-        await this.assignToVehicle(bestFleet.vehicleId, bestFleet.operatorId, request.shipmentId);
-        
-        return {
-          success: true,
-          assignedTo: {
-            type: 'fleet',
-            id: bestFleet.fleetId,
-            name: bestFleet.fleetName,
-            vehicleId: bestFleet.vehicleId,
-            operatorId: bestFleet.operatorId,
-            vcode: bestFleet.vcode
-          }
-        };
+      if (subscribedResult.success) {
+        return subscribedResult;
       }
 
-      return { success: false };
-    } catch (error) {
-      console.error('Subscription assignment failed:', error);
-      return { success: false };
-    }
-  }
-
-  // FCFS Assignment
-  private async tryFCFSAssignment(request: AssignmentRequest): Promise<AssignmentResult> {
-    try {
-      // Get all available operators (both fleet and individual)
-      const availableOperators = await this.getAvailableOperators(request);
-      
-      if (availableOperators.length === 0) {
-        return { success: false };
-      }
-
-      // Sort by response time (first come, first served)
-      const sortedOperators = availableOperators.sort((a, b) => 
-        a.lastResponseTime - b.lastResponseTime
+      // Phase 2: All Eligible (FCFS)
+      const allEligibleResult = await this.runAssignmentCycle(
+        shipmentId,
+        2,
+        'all_eligible',
+        shipment
       );
 
-      // Try assignment with each operator until one accepts
-      for (const operator of sortedOperators) {
-        const accepted = await this.sendIndividualAssignmentRequest(operator.id, request);
-        
-        if (accepted) {
-          await this.assignToOperator(operator.id, request.shipmentId);
-          
-          return {
-            success: true,
-            assignedTo: {
-              type: operator.type,
-              id: operator.id,
-              name: operator.name,
-              vehicleId: operator.vehicleId,
-              operatorId: operator.id
-            }
-          };
-        }
+      if (allEligibleResult.success) {
+        return allEligibleResult;
       }
 
-      return { success: false };
+      // Phase 3: Dynamic Pricing Escalation
+      return await this.escalatePriceAndRetry(shipmentId, shipment);
+
     } catch (error) {
-      console.error('FCFS assignment failed:', error);
-      return { success: false };
+      console.error('Error in assignment:', error);
+      await this.updateShipmentStatus(shipmentId, 'FAILED');
+      return { success: false, cycleNo: 0, reason: 'Assignment failed' };
     }
   }
 
-  // Dynamic Pricing Escalation
-  private async tryDynamicEscalation(
-    request: AssignmentRequest, 
-    startTime: number
+  // Run assignment cycle
+  private async runAssignmentCycle(
+    shipmentId: string,
+    cycleNo: number,
+    targetType: 'subscribed_fleets' | 'all_eligible',
+    shipment: any
   ): Promise<AssignmentResult> {
-    let currentPrice = request.price;
-    
-    for (let level = 0; level < this.ESCALATION_LEVELS.length; level++) {
-      // Check if we've exceeded timeout
-      if (Date.now() - startTime > this.RESPONSE_TIMEOUT) {
-        return {
-          success: false,
-          error: 'Assignment timeout exceeded'
-        };
+    try {
+      // Find candidates
+      const candidates = await this.findCandidates(shipmentId, targetType);
+      
+      if (candidates.length === 0) {
+        return { success: false, cycleNo, reason: 'No eligible candidates found' };
       }
 
-      // Escalate price
-      currentPrice = Math.round(request.price * this.ESCALATION_LEVELS[level]);
+      // Create assignment cycle record
+      const cycleId = await this.createAssignmentCycle(shipmentId, cycleNo, targetType, candidates);
+
+      if (targetType === 'subscribed_fleets') {
+        // Sequential assignment for subscribed fleets
+        return await this.runSequentialAssignment(shipmentId, cycleId, candidates);
+      } else {
+        // FCFS assignment for all eligible
+        return await this.runFCFSAssignment(shipmentId, cycleId, candidates);
+      }
+    } catch (error) {
+      console.error('Error in assignment cycle:', error);
+      return { success: false, cycleNo, reason: 'Cycle failed' };
+    }
+  }
+
+  // Sequential assignment (for subscribed fleets)
+  private async runSequentialAssignment(
+    shipmentId: string,
+    cycleId: string,
+    candidates: AssignmentCandidate[]
+  ): Promise<AssignmentResult> {
+    for (const candidate of candidates) {
+      try {
+        // Send request to candidate
+        await this.sendAssignmentRequest(shipmentId, candidate);
+        
+        // Wait for response or timeout
+        const response = await this.waitForResponse(shipmentId, candidate.candidateId, this.CYCLE_DURATION);
+        
+        if (response.accepted) {
+          // Update assignment cycle
+          await this.updateAssignmentCycle(cycleId, 'accepted', candidate);
+          
+          // Assign shipment
+          await this.assignShipmentToCandidate(shipmentId, candidate);
+          
+          return { success: true, assignedTo: candidate, cycleNo: 1 };
+        }
+        
+        // Candidate rejected or timed out, continue to next
+        await this.updateAssignmentCycle(cycleId, 'rejected', candidate);
+        
+      } catch (error) {
+        console.error('Error in sequential assignment:', error);
+        continue;
+      }
+    }
+    
+    return { success: false, cycleNo: 1, reason: 'No candidates accepted' };
+  }
+
+  // FCFS assignment (for all eligible)
+  private async runFCFSAssignment(
+    shipmentId: string,
+    cycleId: string,
+    candidates: AssignmentCandidate[]
+  ): Promise<AssignmentResult> {
+    try {
+      // Send requests to all candidates simultaneously
+      const promises = candidates.map(candidate => 
+        this.sendAssignmentRequest(shipmentId, candidate)
+      );
       
-      // Update shipment price
-      await this.updateShipmentPrice(request.shipmentId, currentPrice);
+      await Promise.all(promises);
+      
+      // Wait for first acceptance
+      const response = await this.waitForFirstAcceptance(shipmentId, candidates, this.CYCLE_DURATION);
+      
+      if (response.accepted && response.candidate) {
+        // Update assignment cycle
+        await this.updateAssignmentCycle(cycleId, 'accepted', response.candidate);
+        
+        // Assign shipment
+        await this.assignShipmentToCandidate(shipmentId, response.candidate);
+        
+        return { success: true, assignedTo: response.candidate, cycleNo: 2 };
+      }
+      
+      return { success: false, cycleNo: 2, reason: 'No candidates accepted' };
+      
+    } catch (error) {
+      console.error('Error in FCFS assignment:', error);
+      return { success: false, cycleNo: 2, reason: 'FCFS assignment failed' };
+    }
+  }
+
+  // Dynamic pricing escalation
+  private async escalatePriceAndRetry(shipmentId: string, shipment: any): Promise<AssignmentResult> {
+    try {
+      const escalationSteps = [10, 20, 30]; // Percentage increases
+      const currentRetryCount = shipment.retry_count || 0;
+      
+      if (currentRetryCount >= this.MAX_RETRIES) {
+        await this.updateShipmentStatus(shipmentId, 'ESCALATED_TO_ADMIN');
+        return { success: false, cycleNo: 3, reason: 'Escalated to admin' };
+      }
+      
+      const escalationPercentage = escalationSteps[currentRetryCount] || 30;
+      const newPrice = shipment.price_submitted * (1 + escalationPercentage / 100);
+      
+      // Update shipment with new price
+      await this.updateShipmentPrice(shipmentId, newPrice, currentRetryCount + 1);
       
       // Notify shipper about price escalation
-      await this.notifyPriceEscalation(request.shipperId, request.shipmentId, currentPrice, level + 1);
+      await this.notifyShipperAboutEscalation(shipmentId, newPrice, escalationPercentage);
       
-      // Try assignment again with new price
-      const escalatedRequest = { ...request, price: currentPrice };
+      // Wait for shipper response (this would be handled by UI)
+      // For now, return escalation required
+      return { 
+        success: false, 
+        cycleNo: 3, 
+        reason: `Price escalation required: +${escalationPercentage}%` 
+      };
       
-      // Try subscription assignment first
-      const subscriptionResult = await this.trySubscriptionAssignment(escalatedRequest);
-      if (subscriptionResult.success) {
-        return {
-          ...subscriptionResult,
-          price: currentPrice,
-          escalationLevel: level + 1
-        };
-      }
-
-      // Try FCFS assignment
-      const fcfsResult = await this.tryFCFSAssignment(escalatedRequest);
-      if (fcfsResult.success) {
-        return {
-          ...fcfsResult,
-          price: currentPrice,
-          escalationLevel: level + 1
-        };
-      }
-
-      // Wait a bit before next escalation
-      await this.delay(30000); // 30 seconds
+    } catch (error) {
+      console.error('Error in price escalation:', error);
+      return { success: false, cycleNo: 3, reason: 'Escalation failed' };
     }
-
-    // If all escalations failed, cancel shipment
-    await this.cancelShipment(request.shipmentId, 'No operators available after price escalation');
-    
-    return {
-      success: false,
-      error: 'Shipment cancelled - no operators available after price escalation',
-      escalationLevel: 3
-    };
   }
 
-  // Helper Methods
-  private async getSubscribedFleets(): Promise<any[]> {
-    const { data } = await supabase
-      .from('fleet_subscriptions')
-      .select(`
-        *,
-        fleets (
-          id,
-          name,
-          vehicles (
-            id,
-            vcode,
-            type,
-            status,
-            availability,
-            operators (
-              id,
-              name,
-              status,
-              current_location
-            )
-          )
-        )
-      `)
-      .eq('status', 'active')
-      .gte('end_date', new Date().toISOString());
-
-    return data || [];
-  }
-
-  private async findBestFleetMatch(request: AssignmentRequest, fleets: any[]): Promise<any> {
-    let bestMatch = null;
-    let bestScore = 0;
-
-    for (const fleet of fleets) {
-      for (const vehicle of fleet.fleets.vehicles) {
-        if (vehicle.status === 'active' && vehicle.availability === 'available') {
-          const score = this.calculateFleetMatchScore(request, vehicle, fleet);
-          
-          if (score > bestScore) {
-            bestScore = score;
-            bestMatch = {
-              fleetId: fleet.fleet_id,
-              fleetName: fleet.fleets.name,
-              vehicleId: vehicle.id,
-              operatorId: vehicle.operators[0]?.id,
-              vcode: vehicle.vcode,
-              score
-            };
-          }
-        }
-      }
-    }
-
-    return bestMatch;
-  }
-
-  private calculateFleetMatchScore(request: AssignmentRequest, vehicle: any, fleet: any): number {
-    let score = 0;
-
-    // Vehicle type match
-    if (vehicle.type === request.vehicleType) score += 30;
-
-    // Capacity check
-    if (vehicle.weight_capacity >= request.weight) score += 20;
-
-    // Distance factor (closer is better)
-    const distance = this.calculateDistance(
-      request.pickupLocation,
-      vehicle.operators[0]?.current_location
-    );
-    score += Math.max(0, 30 - distance / 10); // Decrease score with distance
-
-    // Fleet reliability
-    score += fleet.reliability_score || 0;
-
-    // Subscription priority bonus
-    score += 20;
-
-    return score;
-  }
-
-  private async getAvailableOperators(request: AssignmentRequest): Promise<any[]> {
-    const { data } = await supabase
-      .from('operators')
-      .select(`
-        *,
-        vehicles (
-          id,
-          type,
-          weight_capacity,
-          availability
-        )
-      `)
-      .eq('status', 'available')
-      .eq('vehicles.availability', 'available');
-
-    return data?.filter(op => 
-      op.vehicles.some((v: any) => 
-        v.type === request.vehicleType && 
-        v.weight_capacity >= request.weight
-      )
-    ) || [];
-  }
-
-  private async sendFleetAssignmentRequest(
-    fleetId: string, 
-    vehicleId: string, 
-    request: AssignmentRequest
-  ): Promise<boolean> {
-    // Send real-time notification to fleet owner
-    const notification = {
-      type: 'shipment_assignment',
-      fleetId,
-      vehicleId,
-      shipmentId: request.shipmentId,
-      pickupLocation: request.pickupLocation,
-      destinationLocation: request.destinationLocation,
-      price: request.price,
-      urgency: request.urgency,
-      expiresAt: Date.now() + this.RESPONSE_TIMEOUT
-    };
-
-    // Send via real-time channel
-    await supabase
-      .channel('fleet-assignments')
-      .send({
-        type: 'broadcast',
-        event: 'assignment_request',
-        payload: notification
+  // Find eligible candidates
+  private async findCandidates(
+    shipmentId: string,
+    targetType: 'subscribed_fleets' | 'all_eligible'
+  ): Promise<AssignmentCandidate[]> {
+    try {
+      const { data, error } = await supabase.rpc('find_shipment_candidates', {
+        p_shipment_id: shipmentId,
+        p_candidate_type: targetType
       });
 
-    // Wait for response (in real implementation, this would be handled by real-time events)
-    return await this.waitForFleetResponse(fleetId, request.shipmentId);
+      if (error) throw error;
+
+      return data || [];
+    } catch (error) {
+      console.error('Error finding candidates:', error);
+      return [];
+    }
   }
 
-  private async sendIndividualAssignmentRequest(
-    operatorId: string, 
-    request: AssignmentRequest
-  ): Promise<boolean> {
-    // Send real-time notification to individual operator
-    const notification = {
-      type: 'shipment_assignment',
-      operatorId,
-      shipmentId: request.shipmentId,
-      pickupLocation: request.pickupLocation,
-      destinationLocation: request.destinationLocation,
-      price: request.price,
-      urgency: request.urgency,
-      expiresAt: Date.now() + this.RESPONSE_TIMEOUT
-    };
+  // Create assignment cycle record
+  private async createAssignmentCycle(
+    shipmentId: string,
+    cycleNo: number,
+    targetType: 'subscribed_fleets' | 'all_eligible',
+    candidates: AssignmentCandidate[]
+  ): Promise<string> {
+    try {
+      const expiresAt = new Date(Date.now() + this.CYCLE_DURATION * 1000);
+      
+      const { data, error } = await supabase
+        .from('shipment_bids_requests')
+        .insert({
+          shipment_id: shipmentId,
+          cycle_no: cycleNo,
+          target_type: targetType,
+          candidates_list: candidates,
+          expires_at: expiresAt.toISOString()
+        })
+        .select('id')
+        .single();
 
-    // Send via real-time channel
-    await supabase
-      .channel('operator-assignments')
-      .send({
-        type: 'broadcast',
-        event: 'assignment_request',
-        payload: notification
-      });
-
-    // Wait for response
-    return await this.waitForOperatorResponse(operatorId, request.shipmentId);
+      if (error) throw error;
+      return data.id;
+    } catch (error) {
+      console.error('Error creating assignment cycle:', error);
+      throw error;
+    }
   }
 
-  private async waitForFleetResponse(fleetId: string, shipmentId: string): Promise<boolean> {
-    // In real implementation, this would listen to real-time events
-    // For now, simulate with timeout
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Mock: 70% acceptance rate for subscribed fleets
-        resolve(Math.random() > 0.3);
-      }, 5000);
-    });
-  }
-
-  private async waitForOperatorResponse(operatorId: string, shipmentId: string): Promise<boolean> {
-    // In real implementation, this would listen to real-time events
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Mock: 50% acceptance rate for individual operators
-        resolve(Math.random() > 0.5);
-      }, 3000);
-    });
-  }
-
-  private async assignToVehicle(vehicleId: string, operatorId: string, shipmentId: string): Promise<void> {
-    await supabase
-      .from('shipments')
-      .update({
-        vehicle_id: vehicleId,
-        operator_id: operatorId,
-        status: 'assigned'
-      })
-      .eq('id', shipmentId);
-  }
-
-  private async assignToOperator(operatorId: string, shipmentId: string): Promise<void> {
-    await supabase
-      .from('shipments')
-      .update({
-        operator_id: operatorId,
-        status: 'assigned'
-      })
-      .eq('id', shipmentId);
-  }
-
-  private async updateShipmentPrice(shipmentId: string, newPrice: number): Promise<void> {
-    await supabase
-      .from('shipments')
-      .update({ price: newPrice })
-      .eq('id', shipmentId);
-  }
-
-  private async notifyPriceEscalation(
-    shipperId: string, 
-    shipmentId: string, 
-    newPrice: number, 
-    level: number
+  // Send assignment request to candidate
+  private async sendAssignmentRequest(
+    shipmentId: string,
+    candidate: AssignmentCandidate
   ): Promise<void> {
-    // Send notification to shipper about price escalation
-    await supabase
-      .from('notifications')
-      .insert({
-        user_id: shipperId,
-        user_type: 'shipper',
-        type: 'warning',
-        title: 'Shipment Price Escalated',
-        message: `Your shipment ${shipmentId} price has been increased to ₹${newPrice} (Level ${level} escalation)`,
-        data: { shipmentId, newPrice, level }
-      });
+    try {
+      // Create notification for the candidate
+      await this.createNotification(
+        candidate.candidateId,
+        shipmentId,
+        'PUSH',
+        'New Shipment Assignment',
+        `You have a new shipment assignment request. Respond within 2 minutes.`,
+        { candidateType: candidate.candidateType }
+      );
+
+      // Log the request
+      await this.createShipmentEvent(
+        shipmentId,
+        'ASSIGNMENT_REQUEST_SENT',
+        null,
+        'system',
+        { candidateId: candidate.candidateId, candidateType: candidate.candidateType }
+      );
+
+    } catch (error) {
+      console.error('Error sending assignment request:', error);
+      throw error;
+    }
   }
 
-  private async cancelShipment(shipmentId: string, reason: string): Promise<void> {
-    await supabase
-      .from('shipments')
-      .update({
-        status: 'cancelled',
-        special_handling: reason
-      })
-      .eq('id', shipmentId);
+  // Wait for response from candidate
+  private async waitForResponse(
+    shipmentId: string,
+    candidateId: string,
+    timeoutSeconds: number
+  ): Promise<{ accepted: boolean; candidate?: AssignmentCandidate }> {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        resolve({ accepted: false });
+      }, timeoutSeconds * 1000);
+
+      // In production, this would use WebSocket or Redis pub/sub
+      // For now, simulate with a mock response
+      this.simulateCandidateResponse(shipmentId, candidateId, timeout, resolve);
+    });
   }
 
-  private calculateDistance(point1: { lat: number; lng: number }, point2: { lat: number; lng: number }): number {
-    if (!point2) return Infinity;
+  // Wait for first acceptance in FCFS
+  private async waitForFirstAcceptance(
+    shipmentId: string,
+    candidates: AssignmentCandidate[],
+    timeoutSeconds: number
+  ): Promise<{ accepted: boolean; candidate?: AssignmentCandidate }> {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        resolve({ accepted: false });
+      }, timeoutSeconds * 1000);
+
+      // Simulate first acceptance
+      const randomCandidate = candidates[Math.floor(Math.random() * candidates.length)];
+      setTimeout(() => {
+        clearTimeout(timeout);
+        resolve({ accepted: true, candidate: randomCandidate });
+      }, Math.random() * timeoutSeconds * 1000);
+    });
+  }
+
+  // Simulate candidate response (for development)
+  private simulateCandidateResponse(
+    shipmentId: string,
+    candidateId: string,
+    timeout: NodeJS.Timeout,
+    resolve: (value: any) => void
+  ): void {
+    // Simulate random response time and acceptance rate
+    const responseTime = Math.random() * 100000; // Random response within timeout
+    const acceptanceRate = 0.7; // 70% acceptance rate
     
-    const R = 6371; // Earth's radius in km
-    const dLat = (point2.lat - point1.lat) * Math.PI / 180;
-    const dLng = (point2.lng - point1.lng) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    setTimeout(() => {
+      clearTimeout(timeout);
+      const accepted = Math.random() < acceptanceRate;
+      resolve({ accepted });
+    }, responseTime);
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  // Assign shipment to candidate
+  private async assignShipmentToCandidate(
+    shipmentId: string,
+    candidate: AssignmentCandidate
+  ): Promise<void> {
+    try {
+      const updateData: any = {
+        status: 'ASSIGNED',
+        assigned_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      if (candidate.candidateType === 'fleet') {
+        updateData.assigned_fleet_id = candidate.fleetId;
+        updateData.assigned_vehicle_id = candidate.vehicleId;
+        updateData.assigned_driver_id = candidate.driverId;
+      } else {
+        updateData.assigned_vehicle_id = candidate.vehicleId;
+        updateData.assigned_driver_id = candidate.driverId;
+      }
+
+      const { error } = await supabase
+        .from('shipments')
+        .update(updateData)
+        .eq('id', shipmentId);
+
+      if (error) throw error;
+
+      // Create assignment event
+      await this.createShipmentEvent(
+        shipmentId,
+        'ASSIGNED',
+        null,
+        'system',
+        { 
+          candidateId: candidate.candidateId,
+          candidateType: candidate.candidateType,
+          score: candidate.score
+        }
+      );
+
+      // Notify shipper about assignment
+      await this.notifyShipperAboutAssignment(shipmentId, candidate);
+
+    } catch (error) {
+      console.error('Error assigning shipment:', error);
+      throw error;
+    }
+  }
+
+  // Update assignment cycle
+  private async updateAssignmentCycle(
+    cycleId: string,
+    status: 'accepted' | 'rejected' | 'timeout',
+    selectedCandidate?: AssignmentCandidate
+  ): Promise<void> {
+    try {
+      const updateData: any = { status };
+      if (selectedCandidate) {
+        updateData.selected_candidate = selectedCandidate.candidateId;
+      }
+
+      const { error } = await supabase
+        .from('shipment_bids_requests')
+        .update(updateData)
+        .eq('id', cycleId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating assignment cycle:', error);
+    }
+  }
+
+  // Update shipment status
+  private async updateShipmentStatus(shipmentId: string, status: string): Promise<void> {
+    try {
+      const { error } = await supabase.rpc('update_shipment_status', {
+        p_shipment_id: shipmentId,
+        p_status: status
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating shipment status:', error);
+    }
+  }
+
+  // Update shipment price
+  private async updateShipmentPrice(
+    shipmentId: string,
+    newPrice: number,
+    retryCount: number
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('shipments')
+        .update({
+          price_submitted: newPrice,
+          retry_count: retryCount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', shipmentId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating shipment price:', error);
+    }
+  }
+
+  // Get shipment details
+  private async getShipment(shipmentId: string): Promise<any> {
+    try {
+      const { data, error } = await supabase
+        .from('shipments')
+        .select('*')
+        .eq('id', shipmentId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error getting shipment:', error);
+      return null;
+    }
+  }
+
+  // Create shipment event
+  private async createShipmentEvent(
+    shipmentId: string,
+    eventType: string,
+    actorId: string | null,
+    actorType: string,
+    metadata: any
+  ): Promise<void> {
+    try {
+      const { error } = await supabase.rpc('create_shipment_event', {
+        p_shipment_id: shipmentId,
+        p_event_type: eventType,
+        p_actor_id: actorId,
+        p_actor_type: actorType,
+        p_metadata: metadata
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error creating shipment event:', error);
+    }
+  }
+
+  // Create notification
+  private async createNotification(
+    userId: string,
+    shipmentId: string,
+    type: string,
+    title: string,
+    message: string,
+    data: any
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          shipment_id: shipmentId,
+          notification_type: type,
+          title,
+          message,
+          data
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
+  }
+
+  // Notify shipper about assignment
+  private async notifyShipperAboutAssignment(
+    shipmentId: string,
+    candidate: AssignmentCandidate
+  ): Promise<void> {
+    try {
+      const shipment = await this.getShipment(shipmentId);
+      if (!shipment) return;
+
+      await this.createNotification(
+        shipment.shipper_id,
+        shipmentId,
+        'EMAIL',
+        'Shipment Assigned',
+        `Your shipment has been assigned to ${candidate.candidateType === 'fleet' ? 'fleet' : 'driver'}. You will receive pickup notifications soon.`,
+        { candidateType: candidate.candidateType }
+      );
+    } catch (error) {
+      console.error('Error notifying shipper:', error);
+    }
+  }
+
+  // Notify shipper about price escalation
+  private async notifyShipperAboutEscalation(
+    shipmentId: string,
+    newPrice: number,
+    escalationPercentage: number
+  ): Promise<void> {
+    try {
+      const shipment = await this.getShipment(shipmentId);
+      if (!shipment) return;
+
+      await this.createNotification(
+        shipment.shipper_id,
+        shipmentId,
+        'EMAIL',
+        'Price Escalation Required',
+        `No drivers accepted your shipment at the current price. We recommend increasing the price by ${escalationPercentage}% to ₹${newPrice}. Please accept or cancel.`,
+        { newPrice, escalationPercentage }
+      );
+    } catch (error) {
+      console.error('Error notifying shipper about escalation:', error);
+    }
+  }
+
+  // Handle candidate acceptance
+  async handleCandidateAcceptance(
+    shipmentId: string,
+    candidateId: string,
+    accepted: boolean
+  ): Promise<void> {
+    try {
+      if (accepted) {
+        // Find the candidate and assign
+        const candidates = await this.findCandidates(shipmentId, 'all_eligible');
+        const candidate = candidates.find(c => c.candidateId === candidateId);
+        
+        if (candidate) {
+          await this.assignShipmentToCandidate(shipmentId, candidate);
+        }
+      } else {
+        // Log rejection
+        await this.createShipmentEvent(
+          shipmentId,
+          'CANDIDATE_REJECTED',
+          candidateId,
+          'fleet',
+          { candidateId }
+        );
+      }
+    } catch (error) {
+      console.error('Error handling candidate acceptance:', error);
+    }
   }
 }
 
-export const assignmentService = AssignmentService.getInstance();
-
+export default AssignmentService;

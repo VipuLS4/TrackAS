@@ -59,13 +59,6 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({ onRoleSelect }) => {
       icon: Building2,
       color: 'bg-purple-500',
       features: ['Fleet management', 'Analytics dashboard', 'Performance monitoring']
-    },
-    {
-      title: 'TrackAS Admin',
-      description: 'Oversees the entire platform',
-      icon: Shield,
-      color: 'bg-orange-500',
-      features: ['System oversight', 'User verification', 'Platform analytics']
     }
   ];
 

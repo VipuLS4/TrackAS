@@ -28,7 +28,7 @@ interface SidebarProps {
   isOpen: boolean;
   activeTab: string;
   onTabChange: (tab: string) => void;
-  userRole: 'admin' | 'logistics' | 'operator' | 'customer';
+  userRole: 'admin' | 'shipper' | 'fleet' | 'individual';
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userRole }) => {
@@ -39,6 +39,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
           { id: 'dashboard', label: 'Admin Dashboard', icon: Home },
           { id: 'approvals', label: 'Shipment Approvals', icon: CheckCircle },
           { id: 'verification', label: 'User Verification', icon: Shield },
+          { id: 'shipments', label: 'Shipment Management', icon: Package },
+          { id: 'payments', label: 'Payment Management', icon: CreditCard },
+          { id: 'subscriptions', label: 'Fleet Subscriptions', icon: Users },
           { id: 'disputes', label: 'Dispute Management', icon: AlertTriangle },
           { id: 'analytics', label: 'System Analytics', icon: BarChart3 },
           { id: 'ai-insights', label: 'AI Insights', icon: Brain },
@@ -47,36 +50,36 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, activeTab, onTabChange, userR
           { id: 'unified-registration', label: 'Registration Portal', icon: UserPlus },
           { id: 'settings', label: 'System Settings', icon: Settings },
         ];
-      case 'logistics':
+      case 'shipper':
         return [
-          { id: 'dashboard', label: 'Shipper Portal', icon: Home },
+          { id: 'dashboard', label: 'Dashboard', icon: Home },
           { id: 'create-shipment', label: 'Create Shipment', icon: Package },
-          { id: 'tracking', label: 'Live Tracking', icon: MapPin },
-          { id: 'invoices', label: 'Invoice Management', icon: FileText },
-          { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-          { id: 'ai-insights', label: 'AI Insights', icon: Brain },
-          { id: 'settings', label: 'Settings', icon: Settings },
-        ];
-      case 'operator':
-        return [
-          { id: 'dashboard', label: 'Dashboard', icon: Home },
-          { id: 'available-jobs', label: 'Available Jobs', icon: Package },
-          { id: 'active-shipments', label: 'Active Shipments', icon: Truck },
-          { id: 'tracking', label: 'Live Tracking', icon: MapPin },
-          { id: 'live-map', label: 'Live Map View', icon: MapPin },
-          { id: 'invoices', label: 'Earnings & Invoices', icon: CreditCard },
-          { id: 'predictive-eta', label: 'Predictive ETA', icon: Zap },
-          { id: 'settings', label: 'Settings', icon: Settings },
-        ];
-      case 'customer':
-        return [
-          { id: 'dashboard', label: 'Dashboard', icon: Home },
           { id: 'my-shipments', label: 'My Shipments', icon: Package },
-          { id: 'tracking', label: 'Track Shipment', icon: MapPin },
-          { id: 'live-map', label: 'Live Map View', icon: MapPin },
-          { id: 'invoices', label: 'Invoices & Billing', icon: Download },
-          { id: 'customer-tracking', label: 'Track Shipment', icon: Search },
-          { id: 'settings', label: 'Settings', icon: Settings },
+          { id: 'tracking', label: 'Tracking', icon: MapPin },
+          { id: 'billing', label: 'Billing & Invoices', icon: CreditCard },
+          { id: 'analytics', label: 'Performance Analytics', icon: BarChart3 },
+        ];
+      case 'fleet':
+        return [
+          { id: 'dashboard', label: 'Dashboard', icon: Home },
+          { id: 'requests', label: 'Priority Requests', icon: Package },
+          { id: 'fleet-tracker', label: 'Fleet Tracker', icon: Truck },
+          { id: 'earnings', label: 'Earnings Dashboard', icon: CreditCard },
+          { id: 'maintenance', label: 'Maintenance & Compliance', icon: Settings },
+          { id: 'fleet-management', label: 'Fleet Management', icon: Users },
+          { id: 'subscriptions', label: 'Subscriptions', icon: Star },
+        ];
+      case 'individual':
+        return [
+          { id: 'dashboard', label: 'Dashboard', icon: Home },
+          { id: 'jobs', label: 'Job Feed (FCFS)', icon: Package },
+          { id: 'earnings', label: 'My Earnings', icon: CreditCard },
+          { id: 'trips', label: 'Trip History', icon: MapPin },
+          { id: 'documents', label: 'Document Tracker', icon: FileText },
+          { id: 'profile', label: 'Profile', icon: Settings },
+          { id: 'driver-app', label: 'Driver App', icon: Truck },
+          { id: 'available-jobs', label: 'Available Jobs', icon: Package },
+          { id: 'feedback', label: 'Feedback & Ratings', icon: Star },
         ];
       default:
         return [];
