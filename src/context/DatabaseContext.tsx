@@ -11,76 +11,87 @@ import {
   useRealTime,
   useLocationTracking
 } from '../hooks/useSupabase';
+import { 
+  Company, 
+  Vehicle, 
+  Shipment, 
+  Operator, 
+  Notification, 
+  Analytics, 
+  Customer, 
+  Payment, 
+  LocationUpdate 
+} from '../types/database';
 
 interface DatabaseContextType {
   // Companies
-  companies: any[];
+  companies: Company[];
   companiesLoading: boolean;
   companiesError: string | null;
-  createCompany: (company: any) => Promise<any>;
-  updateCompanyStatus: (id: string, status: any, rejectionReason?: string) => Promise<any>;
+  createCompany: (company: Omit<Company, 'id' | 'created_at' | 'updated_at'>) => Promise<Company>;
+  updateCompanyStatus: (id: string, status: 'approved' | 'rejected' | 'pending', rejectionReason?: string) => Promise<Company>;
   refetchCompanies: () => Promise<void>;
 
   // Vehicles
-  vehicles: any[];
+  vehicles: Vehicle[];
   vehiclesLoading: boolean;
   vehiclesError: string | null;
-  createVehicle: (vehicle: any) => Promise<any>;
-  updateVehicleStatus: (id: string, status: any) => Promise<any>;
-  updateVehicleLocation: (id: string, lat: number, lng: number, address?: string) => Promise<any>;
+  createVehicle: (vehicle: Omit<Vehicle, 'id' | 'created_at' | 'updated_at'>) => Promise<Vehicle>;
+  updateVehicleStatus: (id: string, status: 'available' | 'busy' | 'maintenance') => Promise<Vehicle>;
+  updateVehicleLocation: (id: string, lat: number, lng: number, address?: string) => Promise<Vehicle>;
   refetchVehicles: () => Promise<void>;
 
   // Operators
-  operators: any[];
+  operators: Operator[];
   operatorsLoading: boolean;
   operatorsError: string | null;
-  updateOperatorStatus: (id: string, status: any) => Promise<any>;
-  updateOperatorLocation: (id: string, lat: number, lng: number, address?: string) => Promise<any>;
-  updateOperatorPerformance: (id: string, deliverySuccess: boolean, onTime: boolean) => Promise<any>;
+  updateOperatorStatus: (id: string, status: 'active' | 'inactive') => Promise<Operator>;
+  updateOperatorLocation: (id: string, lat: number, lng: number, address?: string) => Promise<Operator>;
+  updateOperatorPerformance: (id: string, deliverySuccess: boolean, onTime: boolean) => Promise<Operator>;
   refetchOperators: () => Promise<void>;
 
   // Customers
-  customers: any[];
+  customers: Customer[];
   customersLoading: boolean;
   customersError: string | null;
-  createCustomer: (customer: any) => Promise<any>;
-  upsertCustomer: (customer: any) => Promise<any>;
+  createCustomer: (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Promise<Customer>;
+  upsertCustomer: (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Promise<Customer>;
   refetchCustomers: () => Promise<void>;
 
   // Shipments
-  shipments: any[];
+  shipments: Shipment[];
   shipmentsLoading: boolean;
   shipmentsError: string | null;
-  createShipment: (shipment: any) => Promise<any>;
-  updateShipment: (id: string, updates: any) => Promise<any>;
-  updateShipmentStatus: (id: string, status: any, message?: string) => Promise<any>;
-  addShipmentUpdate: (shipmentId: string, message: string, type: any, location?: { lat: number; lng: number }, address?: string) => Promise<void>;
+  createShipment: (shipment: Omit<Shipment, 'id' | 'created_at' | 'updated_at'>) => Promise<Shipment>;
+  updateShipment: (id: string, updates: Partial<Shipment>) => Promise<Shipment>;
+  updateShipmentStatus: (id: string, status: 'pending' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled', message?: string) => Promise<Shipment>;
+  addShipmentUpdate: (shipmentId: string, message: string, type: 'status' | 'location' | 'note', location?: { lat: number; lng: number }, address?: string) => Promise<void>;
   refetchShipments: () => Promise<void>;
 
   // Notifications
-  notifications: any[];
+  notifications: Notification[];
   notificationsLoading: boolean;
   notificationsError: string | null;
   unreadCount: number;
-  createNotification: (notification: any) => Promise<any>;
+  createNotification: (notification: Omit<Notification, 'id' | 'created_at'>) => Promise<Notification>;
   markNotificationAsRead: (id: string) => Promise<void>;
   markAllNotificationsAsRead: () => Promise<void>;
   refetchNotifications: () => Promise<void>;
 
   // Analytics
-  analytics: any;
-  realTimeMetrics: any;
+  analytics: Analytics;
+  realTimeMetrics: Analytics;
   analyticsLoading: boolean;
   analyticsError: string | null;
   refetchAnalytics: () => Promise<void>;
   refetchRealTimeMetrics: () => Promise<void>;
 
   // Payments
-  payments: any[];
+  payments: Payment[];
   paymentsLoading: boolean;
   paymentsError: string | null;
-  createPayment: (payment: any) => Promise<any>;
-  updatePaymentStatus: (id: string, status: any, transactionId?: string, gatewayResponse?: any) => Promise<any>;
+  createPayment: (payment: Omit<Payment, 'id' | 'created_at' | 'updated_at'>) => Promise<Payment>;
+  updatePaymentStatus: (id: string, status: 'pending' | 'completed' | 'failed' | 'refunded', transactionId?: string, gatewayResponse?: Record<string, unknown>) => Promise<Payment>;
   refetchPayments: () => Promise<void>;
 
   // Real-time & Location

@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const token = localStorage.getItem('trackas_token');
     if (token) {
       try {
-        const userData = jwtDecode<any>(token);
+        const userData = jwtDecode<{ sub?: string; id?: string; email: string; role: string; exp: number }>(token);
         if (userData.exp * 1000 > Date.now()) {
           dispatch({
             type: 'LOGIN_SUCCESS',
@@ -98,7 +98,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else {
           localStorage.removeItem('trackas_token');
         }
-      } catch (error) {
+      } catch {
         localStorage.removeItem('trackas_token');
       }
     }

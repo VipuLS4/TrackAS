@@ -31,7 +31,6 @@ import AdminVerificationDashboard from './AdminVerificationDashboard';
 import AdminShipmentDashboard from './AdminShipmentDashboard';
 import DriverApp from './DriverApp';
 import FeedbackAndRatings from './FeedbackAndRatings';
-import AdminDashboard from './AdminDashboard';
 import ShipperDashboard from './ShipperDashboard';
 import FleetOperatorDashboard from './FleetOperatorDashboard';
 import IndividualVehicleOwnerDashboard from './IndividualVehicleOwnerDashboard';
@@ -51,7 +50,7 @@ const AppContent: React.FC = () => {
     }
   }, [authState]);
 
-  const handleLogin = (role: 'admin' | 'shipper' | 'fleet' | 'individual' | 'operator' | 'customer' | 'logistics', _userData?: unknown) => {
+  const handleLogin = (role: 'admin' | 'shipper' | 'fleet' | 'individual' | 'operator' | 'customer' | 'logistics') => {
     setUserRole(role);
     setActiveTab('dashboard');
   };

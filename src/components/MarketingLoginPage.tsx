@@ -244,7 +244,7 @@ const MarketingLoginPage: React.FC<MarketingLoginPageProps> = ({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-2xl mx-auto">
             <div className="text-center">
               <div className="text-3xl font-bold text-white mb-2">
-                < 2 min
+                &lt; 2 min
               </div>
               <div className="text-gray-300 text-sm">
                 Assignment Time
