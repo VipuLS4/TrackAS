@@ -18,6 +18,7 @@ interface LoginFormProps {
   onSignUp: () => void;
   isLoading?: boolean;
   error?: string;
+  defaultRole?: 'admin' | 'shipper' | 'fleet' | 'individual';
 }
 
 interface LoginCredentials {
@@ -26,11 +27,11 @@ interface LoginCredentials {
   role: 'admin' | 'shipper' | 'fleet' | 'individual';
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSignUp, isLoading = false, error }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSignUp, isLoading = false, error, defaultRole }) => {
   const [credentials, setCredentials] = useState<LoginCredentials>({
     email: '',
     password: '',
-    role: 'shipper'
+    role: defaultRole || 'shipper'
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(false);
@@ -96,35 +97,37 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSignUp, isLoading = fa
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Role Selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              I am a
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {roleOptions.map((role) => (
-                <motion.button
-                  key={role.value}
-                  type="button"
-                  onClick={() => handleInputChange('role', role.value)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                    credentials.role === role.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-white/50 text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <role.icon className="h-4 w-4 mx-auto mb-1" />
-                  <div className="text-xs font-medium">{role.label}</div>
-                </motion.button>
-              ))}
+          {!defaultRole && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                I am a
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {roleOptions.map((role) => (
+                  <motion.button
+                    key={role.value}
+                    type="button"
+                    onClick={() => handleInputChange('role', role.value)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`p-3 rounded-lg border-2 transition-all duration-200 ${
+                      credentials.role === role.value
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 bg-white/50 text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <role.icon className="h-4 w-4 mx-auto mb-1" />
+                    <div className="text-xs font-medium">{role.label}</div>
+                  </motion.button>
+                ))}
+              </div>
+              {selectedRole && (
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  {selectedRole.description}
+                </p>
+              )}
             </div>
-            {selectedRole && (
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                {selectedRole.description}
-              </p>
-            )}
-          </div>
+          )}
 
           {/* Email Field */}
           <div>

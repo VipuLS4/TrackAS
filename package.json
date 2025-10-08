@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:prod": "NODE_ENV=production vite build",
+    "build:bolt": "vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
@@ -24,10 +24,14 @@
     "deploy:netlify": "netlify deploy --prod --dir=dist"
   },
   "dependencies": {
+    "@sentry/react": "^10.18.0",
+    "@sentry/tracing": "^7.120.4",
     "@supabase/supabase-js": "^2.51.0",
+    "express-prometheus-middleware": "^1.2.0",
     "framer-motion": "^12.23.22",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.263.1",
+    "prom-client": "^13.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

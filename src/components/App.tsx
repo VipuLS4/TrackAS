@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { AppProvider } from '../context/AppContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { DatabaseProvider } from '../context/DatabaseContext';
-import AuthLogin from './AuthLogin';
 import MarketingLoginPage from './MarketingLoginPage';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -36,13 +35,13 @@ import AdminDashboard from './AdminDashboard';
 import ShipperDashboard from './ShipperDashboard';
 import FleetOperatorDashboard from './FleetOperatorDashboard';
 import IndividualVehicleOwnerDashboard from './IndividualVehicleOwnerDashboard';
-import ShipperPortal from './ShipperPortal';
+import PaymentManagementDashboard from './PaymentManagementDashboard';
+import FleetSubscriptionManagement from './FleetSubscriptionManagement';
 import AIAssistant from './AIAssistant';
-import CustomerTrackingPortal from './CustomerTrackingPortal';
 
 const AppContent: React.FC = () => {
   const { state: authState } = useAuth();
-  const [userRole, setUserRole] = useState<'admin' | 'shipper' | 'fleet' | 'individual' | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'shipper' | 'fleet' | 'individual' | 'operator' | 'customer' | 'logistics' | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -52,7 +51,7 @@ const AppContent: React.FC = () => {
     }
   }, [authState]);
 
-  const handleLogin = (role: 'admin' | 'shipper' | 'fleet' | 'individual', _userData?: unknown) => {
+  const handleLogin = (role: 'admin' | 'shipper' | 'fleet' | 'individual' | 'operator' | 'customer' | 'logistics', _userData?: unknown) => {
     setUserRole(role);
     setActiveTab('dashboard');
   };
@@ -170,7 +169,7 @@ const AppContent: React.FC = () => {
     // Regular user content
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard userRole={userRole!} onTabChange={handleTabChange} />;
+        return <Dashboard userRole={userRole as 'operator' | 'customer' | 'logistics'} onTabChange={handleTabChange} />;
       case 'create-shipment':
         return <CreateShipment />;
       case 'shipment-approval':
@@ -212,7 +211,7 @@ const AppContent: React.FC = () => {
       case 'demand-forecasting':
         return <DemandForecasting />;
       case 'invoices':
-        return <InvoiceManagement userRole={userRole!} />;
+        return <InvoiceManagement userRole={userRole as 'operator' | 'customer' | 'logistics'} />;
       case 'customer-tracking':
         return <CustomerTrackingPortal />;
       case 'company-registration':
@@ -222,7 +221,7 @@ const AppContent: React.FC = () => {
       case 'verification':
         return <VerificationDashboard />;
       default:
-        return <Dashboard userRole={userRole!} onTabChange={handleTabChange} />;
+        return <Dashboard userRole={userRole as 'operator' | 'customer' | 'logistics'} onTabChange={handleTabChange} />;
     }
   };
 
@@ -245,7 +244,7 @@ const AppContent: React.FC = () => {
           console.log('Sign up clicked');
         }}
         isLoading={authState.isLoading}
-        error={authState.error}
+        error={undefined}
       />
     );
   }
@@ -256,7 +255,7 @@ const AppContent: React.FC = () => {
         <div className="min-h-screen bg-gray-50">
           <Header 
             onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
-            userRole={userRole}
+            userRole={userRole as 'admin' | 'operator' | 'customer' | 'logistics'}
           />
           
           <div className="flex">
@@ -264,7 +263,7 @@ const AppContent: React.FC = () => {
               isOpen={sidebarOpen}
               activeTab={activeTab}
               onTabChange={handleTabChange}
-              userRole={userRole}
+              userRole={userRole as 'admin' | 'shipper' | 'fleet' | 'individual'}
             />
             
             <main className="flex-1 lg:ml-64">
@@ -282,7 +281,7 @@ const AppContent: React.FC = () => {
 
           {/* AI Assistant */}
           <AIAssistant 
-            userType={userRole || 'guest'} 
+            userType={userRole as 'admin' | 'shipper' | 'fleet' | 'individual' | 'customer' | 'guest'} 
             userId={authState.user?.id}
           />
         </div>

@@ -15,8 +15,9 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          ui: ['lucide-react'],
+          ui: ['lucide-react', 'framer-motion'],
           supabase: ['@supabase/supabase-js'],
+          utils: ['jwt-decode'],
         },
       },
     },
@@ -26,6 +27,8 @@ export default defineConfig({
         drop_debugger: true,
       },
     },
+    // Increase chunk size warning limit for Bolt AI
+    chunkSizeWarningLimit: 1000,
   },
   server: {
     port: 3000,
@@ -34,5 +37,9 @@ export default defineConfig({
   preview: {
     port: 3000,
     host: true,
+  },
+  // Optimize for production builds
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
   },
 });

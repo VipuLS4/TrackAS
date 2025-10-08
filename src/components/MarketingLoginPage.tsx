@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { 
-  ArrowRight, 
-  Play, 
-  Pause, 
-  Volume2, 
-  VolumeX,
-  ExternalLink,
+  Truck, 
+  Package, 
+  MapPin, 
+  Clock, 
+  Shield, 
+  Users, 
+  TrendingUp,
   Zap,
-  Shield,
-  Clock,
-  Users,
-  TrendingUp
+  CheckCircle,
+  ArrowRight,
+  LogIn,
+  User,
+  Building,
+  Car
 } from 'lucide-react';
-import FlowDemo from './FlowDemo';
 import LoginForm from './LoginForm';
-import InteractiveDemo from './InteractiveDemo';
 
 interface MarketingLoginPageProps {
   onLogin: (credentials: any) => void;
@@ -30,230 +31,252 @@ const MarketingLoginPage: React.FC<MarketingLoginPageProps> = ({
   isLoading = false, 
   error 
 }) => {
-  const [currentScene, setCurrentScene] = useState(1);
-  const [isMuted, setIsMuted] = useState(true);
-  const [showFullDemo, setShowFullDemo] = useState(false);
-  const [hasSeenDemo, setHasSeenDemo] = useState(false);
-  const [showInteractiveDemo, setShowInteractiveDemo] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'shipper' | 'fleet' | 'individual' | null>(null);
 
-  // Check if user has seen demo before (cookie/localStorage)
-  useEffect(() => {
-    const seenDemo = localStorage.getItem('trackas-demo-seen');
-    if (seenDemo) {
-      setHasSeenDemo(true);
+  const features = [
+    {
+      icon: Truck,
+      title: "Smart Fleet Management",
+      description: "AI-powered vehicle assignment and route optimization"
+    },
+    {
+      icon: Package,
+      title: "Real-time Tracking",
+      description: "Live shipment tracking with GPS integration"
+    },
+    {
+      icon: MapPin,
+      title: "Route Optimization",
+      description: "AI-driven route planning for maximum efficiency"
+    },
+    {
+      icon: Clock,
+      title: "Fast Assignment",
+      description: "Reduce assignment time from hours to minutes"
+    },
+    {
+      icon: Shield,
+      title: "Secure Platform",
+      description: "Bank-grade security with encrypted transactions"
+    },
+    {
+      icon: Users,
+      title: "Multi-role Support",
+      description: "Support for all logistics stakeholders"
     }
-  }, []);
+  ];
 
-  // Mark demo as seen after first complete cycle
-  useEffect(() => {
-    if (currentScene === 5 && !hasSeenDemo) {
-      setTimeout(() => {
-        setHasSeenDemo(true);
-        localStorage.setItem('trackas-demo-seen', 'true');
-      }, 2000);
+  const userRoles = [
+    {
+      role: 'admin',
+      title: 'Admin',
+      icon: Shield,
+      description: 'System Administrator',
+      color: 'bg-red-500',
+      hoverColor: 'hover:bg-red-600'
+    },
+    {
+      role: 'shipper',
+      title: 'Shipper',
+      icon: Building,
+      description: 'Logistics Company',
+      color: 'bg-blue-500',
+      hoverColor: 'hover:bg-blue-600'
+    },
+    {
+      role: 'fleet',
+      title: 'Fleet Operator',
+      icon: Truck,
+      description: 'Fleet Management',
+      color: 'bg-green-500',
+      hoverColor: 'hover:bg-green-600'
+    },
+    {
+      role: 'individual',
+      title: 'Individual Owner',
+      icon: Car,
+      description: 'Vehicle Owner',
+      color: 'bg-purple-500',
+      hoverColor: 'hover:bg-purple-600'
     }
-  }, [currentScene, hasSeenDemo]);
+  ];
 
-  const handleSceneChange = (scene: number) => {
-    setCurrentScene(scene);
+  const handleRoleSelect = (role: 'admin' | 'shipper' | 'fleet' | 'individual') => {
+    setSelectedRole(role);
+    setShowLoginForm(true);
   };
 
-  const marketingCopy = [
-    "AI-powered freight automation — reduce assignment time from 2 hours to 2 minutes",
-    "Post. Match. Deliver. Get Paid. All in one smart logistics platform",
-    "TrackAS connects fleets, shippers, and drivers — seamlessly, securely, and transparently"
-  ];
+  const handleLogin = (credentials: any) => {
+    onLogin({ ...credentials, role: selectedRole });
+  };
 
-  const [currentCopy, setCurrentCopy] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentCopy(prev => (prev + 1) % marketingCopy.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [marketingCopy.length]);
-
-  const stats = [
-    { label: "Assignment Time", value: "< 2 min", icon: Clock },
-    { label: "Active Users", value: "10K+", icon: Users },
-    { label: "Success Rate", value: "99.9%", icon: TrendingUp },
-    { label: "Security", value: "Bank-grade", icon: Shield }
-  ];
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20" />
-        <motion.div
-          animate={{ 
-            background: [
-              "radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%)",
-              "radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%)",
-              "radial-gradient(circle at 40% 80%, rgba(120, 219, 255, 0.3) 0%, transparent 50%)",
-              "radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%)"
-            ]
-          }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="absolute inset-0"
-        />
-      </div>
-
-      <div className="relative z-10 min-h-screen flex">
-        {/* Left Panel - Flow Demo (70% on desktop, full width on mobile) */}
-        <div className="hidden lg:flex lg:w-3/5 xl:w-2/3">
-          <div className="w-full h-screen">
-            <FlowDemo 
-              autoPlay={!hasSeenDemo}
-              onSceneChange={handleSceneChange}
-            />
-          </div>
-        </div>
-
-        {/* Right Panel - Login Form (30% on desktop, full width on mobile) */}
-        <div className="w-full lg:w-2/5 xl:w-1/3 flex flex-col justify-center p-8 lg:p-12">
-          {/* Mobile Demo Toggle */}
-          <div className="lg:hidden mb-8">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">How TrackAS Works</h3>
-                <button
-                  onClick={() => setShowFullDemo(!showFullDemo)}
-                  className="flex items-center space-x-2 text-blue-300 hover:text-blue-200 transition-colors"
-                >
-                  <span className="text-sm">
-                    {showFullDemo ? 'Hide Demo' : 'Show Demo'}
-                  </span>
-                  <ArrowRight className={`h-4 w-4 transition-transform ${showFullDemo ? 'rotate-90' : ''}`} />
-                </button>
-              </div>
-              
-              <AnimatePresence>
-                {showFullDemo && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="h-64 rounded-lg overflow-hidden">
-                      <FlowDemo 
-                        autoPlay={true}
-                        onSceneChange={handleSceneChange}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+  if (showLoginForm && selectedRole) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-2xl p-8"
+          >
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Login as {userRoles.find(r => r.role === selectedRole)?.title}
+              </h2>
+              <p className="text-gray-600">
+                {userRoles.find(r => r.role === selectedRole)?.description}
+              </p>
             </div>
-          </div>
-
-          {/* Marketing Copy */}
-          <div className="mb-8 text-center lg:text-left">
-            <motion.div
-              key={currentCopy}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.5 }}
-            >
-              <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 leading-tight">
-                {marketingCopy[currentCopy]}
-              </h1>
-            </motion.div>
             
-            <div className="flex items-center justify-center lg:justify-start space-x-4 text-blue-300">
-              <Zap className="h-5 w-5" />
-              <span className="text-sm font-medium">AI-Powered Logistics Platform</span>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4 mb-8">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20"
-              >
-                <div className="flex items-center space-x-3">
-                  <stat.icon className="h-6 w-6 text-blue-400" />
-                  <div>
-                    <div className="text-2xl font-bold text-white">{stat.value}</div>
-                    <div className="text-xs text-gray-300">{stat.label}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Login Form */}
-          <div className="mb-8">
-            <LoginForm
-              onLogin={onLogin}
+            <LoginForm 
+              onLogin={handleLogin}
               onSignUp={onSignUp}
               isLoading={isLoading}
               error={error}
+              defaultRole={selectedRole}
             />
-          </div>
-
-          {/* Additional CTAs */}
-          <div className="space-y-4">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-white/10 backdrop-blur-sm border border-white/20 text-white py-3 px-4 rounded-lg font-medium hover:bg-white/20 transition-all duration-200 flex items-center justify-center space-x-2"
-            >
-              <ExternalLink className="h-4 w-4" />
-              <span>Schedule Demo</span>
-            </motion.button>
             
-            <motion.button
-              onClick={() => setShowInteractiveDemo(true)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-4 rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all duration-200 flex items-center justify-center space-x-2"
+            <button
+              onClick={() => {
+                setShowLoginForm(false);
+                setSelectedRole(null);
+              }}
+              className="w-full mt-4 text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
-              <Play className="h-4 w-4" />
-              <span>Watch Product Tour</span>
-            </motion.button>
-          </div>
-
-          {/* Footer */}
-          <div className="mt-8 text-center lg:text-left">
-            <p className="text-xs text-gray-400 mb-2">
-              Trusted by 500+ fleets and 1000+ shippers across India
-            </p>
-            <div className="flex items-center justify-center lg:justify-start space-x-4 text-xs text-gray-500">
-              <span>© 2025 TrackAS</span>
-              <span>•</span>
-              <span>Privacy Policy</span>
-              <span>•</span>
-              <span>Terms of Service</span>
-            </div>
-          </div>
+              ← Back to role selection
+            </button>
+          </motion.div>
         </div>
       </div>
+    );
+  }
 
-      {/* Audio Controls (Hidden by default) */}
-      <div className="absolute top-4 right-4 z-20">
-        <button
-          onClick={() => setIsMuted(!isMuted)}
-          className="p-2 bg-white/10 backdrop-blur-sm rounded-full text-white hover:bg-white/20 transition-colors"
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+      {/* Header */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h1 className="text-5xl font-bold text-white mb-4">
+              TrackAS
+            </h1>
+            <p className="text-xl text-blue-200 mb-2">
+              Smart Logistics Platform
+            </p>
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+              Connect fleets, shippers, and drivers seamlessly with AI-powered logistics management
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+          {features.map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+              className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300"
+            >
+              <feature.icon className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">
+                {feature.title}
+              </h3>
+              <p className="text-gray-300 text-sm">
+                {feature.description}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* User Role Selection */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+          className="max-w-4xl mx-auto"
         >
-          {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-        </button>
-      </div>
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Choose Your Role
+            </h2>
+            <p className="text-gray-300">
+              Select your role to access the appropriate dashboard
+            </p>
+          </div>
 
-      {/* Interactive Demo Modal */}
-      <AnimatePresence>
-        {showInteractiveDemo && (
-          <InteractiveDemo onClose={() => setShowInteractiveDemo(false)} />
-        )}
-      </AnimatePresence>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {userRoles.map((role, index) => (
+              <motion.button
+                key={role.role}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.9 + index * 0.1 }}
+                onClick={() => handleRoleSelect(role.role as any)}
+                className={`${role.color} ${role.hoverColor} text-white rounded-xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl`}
+              >
+                <role.icon className="h-12 w-12 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">
+                  {role.title}
+                </h3>
+                <p className="text-sm opacity-90">
+                  {role.description}
+                </p>
+                <ArrowRight className="h-5 w-5 mx-auto mt-4" />
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.2 }}
+          className="text-center mt-16"
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-2xl mx-auto">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-white mb-2">
+                < 2 min
+              </div>
+              <div className="text-gray-300 text-sm">
+                Assignment Time
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-white mb-2">
+                10K+
+              </div>
+              <div className="text-gray-300 text-sm">
+                Active Users
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-white mb-2">
+                99.9%
+              </div>
+              <div className="text-gray-300 text-sm">
+                Success Rate
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-white mb-2">
+                Bank-grade
+              </div>
+              <div className="text-gray-300 text-sm">
+                Security
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };

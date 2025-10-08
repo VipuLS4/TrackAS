@@ -1,0 +1,488 @@
+# TrackAS Enterprise Monitoring Setup
+
+## 🎯 Overview
+
+This document outlines the comprehensive monitoring and observability setup for TrackAS, including Sentry for error tracking, Prometheus for metrics collection, and Grafana for visualization and alerting.
+
+## 📊 Monitoring Stack
+
+### **Sentry Integration**
+- **Error Tracking**: Real-time error monitoring and alerting
+- **Performance Monitoring**: Application performance insights
+- **Session Replay**: User session recording for debugging
+- **Release Tracking**: Monitor deployments and rollbacks
+
+### **Prometheus Metrics**
+- **Custom Business Metrics**: Shipment, payment, and user activity metrics
+- **System Metrics**: API response times, error rates, and resource usage
+- **AI/ML Metrics**: Prediction accuracy and model performance
+- **Financial Metrics**: Revenue tracking and payment processing
+
+### **Grafana Dashboards**
+- **Real-time Monitoring**: Live system health and performance
+- **Business Intelligence**: Revenue, user activity, and operational metrics
+- **Alerting**: Proactive notifications for system issues
+- **Custom Dashboards**: Role-specific monitoring views
+
+## 🚀 Setup Instructions
+
+### **1. Environment Variables**
+
+Add these to your `.env` file:
+
+```env
+# Sentry Configuration
+VITE_SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+VITE_SENTRY_ENVIRONMENT=production
+
+# Prometheus Configuration
+VITE_PROMETHEUS_ENDPOINT=/metrics
+VITE_PROMETHEUS_PORT=9090
+
+# Grafana Configuration
+VITE_GRAFANA_URL=https://grafana.your-domain.com
+VITE_GRAFANA_API_KEY=your-grafana-api-key
+```
+
+### **2. Sentry Setup**
+
+1. **Create Sentry Project**:
+   - Go to [sentry.io](https://sentry.io)
+   - Create a new React project
+   - Copy the DSN to your environment variables
+
+2. **Configure Sentry**:
+   ```typescript
+   // Already configured in src/lib/sentry.ts
+   Sentry.init({
+     dsn: import.meta.env.VITE_SENTRY_DSN,
+     environment: import.meta.env.VITE_APP_ENV,
+     tracesSampleRate: 0.1, // 10% in production
+     replaysSessionSampleRate: 0.1,
+     replaysOnErrorSampleRate: 1.0,
+   });
+   ```
+
+### **3. Prometheus Setup**
+
+1. **Install Prometheus**:
+   ```bash
+   # Using Docker
+   docker run -d -p 9090:9090 prom/prometheus
+   
+   # Or using package manager
+   brew install prometheus  # macOS
+   apt-get install prometheus  # Ubuntu
+   ```
+
+2. **Configure Prometheus**:
+   ```yaml
+   # prometheus.yml
+   global:
+     scrape_interval: 15s
+   
+   scrape_configs:
+     - job_name: 'trackas-app'
+       static_configs:
+         - targets: ['localhost:3000']
+       metrics_path: '/metrics'
+       scrape_interval: 5s
+   ```
+
+### **4. Grafana Setup**
+
+1. **Install Grafana**:
+   ```bash
+   # Using Docker
+   docker run -d -p 3001:3000 grafana/grafana
+   
+   # Or using package manager
+   brew install grafana  # macOS
+   apt-get install grafana  # Ubuntu
+   ```
+
+2. **Configure Data Source**:
+   - Access Grafana at `http://localhost:3001`
+   - Add Prometheus as data source: `http://localhost:9090`
+   - Import the provided dashboards
+
+## 📈 Metrics Collection
+
+### **Business Metrics**
+
+#### **Shipment Metrics**
+```typescript
+// Track shipment creation
+monitoring.recordShipmentCreated('shipper', 'express', 'pending');
+
+// Track shipment completion
+monitoring.recordShipmentCompleted('fleet', 2.5); // 2.5 hours
+```
+
+#### **Payment Metrics**
+```typescript
+// Track payment processing
+monitoring.recordPayment('upi', 'completed', 5000);
+monitoring.recordRevenue('shipper', 'shipping_fee', 5000);
+```
+
+#### **User Activity Metrics**
+```typescript
+// Track user logins
+monitoring.recordUserLogin('admin', 'email');
+monitoring.recordUserLogin('fleet', 'google');
+```
+
+### **System Metrics**
+
+#### **API Performance**
+```typescript
+// Automatic API monitoring
+const result = await monitoring.measureAsyncPerformance('createShipment', async () => {
+  return await api.shipments.create(shipmentData);
+});
+```
+
+#### **Error Tracking**
+```typescript
+// Automatic error recording
+try {
+  await riskyOperation();
+} catch (error) {
+  monitoring.recordError(error, 'shipmentService', 'high');
+  throw error;
+}
+```
+
+### **AI/ML Metrics**
+```typescript
+// Track AI predictions
+monitoring.recordAIPrediction('route_optimization', 'v1.2', 0.94);
+monitoring.recordAIPrediction('price_validation', 'v1.1', 0.87);
+```
+
+## 📊 Sample Dashboards
+
+### **1. System Health Dashboard**
+
+**Key Metrics:**
+- API response time (p50, p95, p99)
+- Error rate by endpoint
+- Active users by role
+- System uptime
+
+**Queries:**
+```promql
+# Average API response time
+rate(trackas_api_response_time_seconds_sum[5m]) / rate(trackas_api_response_time_seconds_count[5m])
+
+# Error rate
+rate(trackas_errors_total[5m])
+
+# Active users
+trackas_active_users_current
+```
+
+### **2. Business Metrics Dashboard**
+
+**Key Metrics:**
+- Shipments created/completed per hour
+- Revenue generated by user role
+- Payment success rate
+- Fleet utilization
+
+**Queries:**
+```promql
+# Shipment completion rate
+rate(trackas_shipments_completed_total[1h])
+
+# Revenue per hour
+rate(trackas_revenue_generated_rupees[1h])
+
+# Payment success rate
+rate(trackas_payments_processed_total{status="completed"}[1h]) / rate(trackas_payments_processed_total[1h])
+```
+
+### **3. AI/ML Performance Dashboard**
+
+**Key Metrics:**
+- AI prediction accuracy
+- Model performance by version
+- Prediction volume
+- Accuracy trends
+
+**Queries:**
+```promql
+# Average AI accuracy
+rate(trackas_ai_prediction_accuracy_sum[1h]) / rate(trackas_ai_prediction_accuracy_count[1h])
+
+# Prediction volume
+rate(trackas_ai_predictions_total[1h])
+```
+
+## 🚨 Alerting Rules
+
+### **Critical Alerts**
+
+#### **High Error Rate**
+```yaml
+alert: HighErrorRate
+expr: rate(trackas_errors_total[5m]) > 0.1
+for: 2m
+labels:
+  severity: critical
+annotations:
+  summary: "High error rate detected"
+  description: "Error rate is {{ $value }} errors per second"
+```
+
+#### **API Response Time**
+```yaml
+alert: HighAPILatency
+expr: histogram_quantile(0.95, rate(trackas_api_response_time_seconds_bucket[5m])) > 5
+for: 3m
+labels:
+  severity: warning
+annotations:
+  summary: "High API latency"
+  description: "95th percentile latency is {{ $value }} seconds"
+```
+
+#### **Payment Failures**
+```yaml
+alert: PaymentFailureRate
+expr: rate(trackas_payments_processed_total{status="failed"}[10m]) / rate(trackas_payments_processed_total[10m]) > 0.05
+for: 5m
+labels:
+  severity: critical
+annotations:
+  summary: "High payment failure rate"
+  description: "Payment failure rate is {{ $value }}%"
+```
+
+### **Business Alerts**
+
+#### **Revenue Drop**
+```yaml
+alert: RevenueDrop
+expr: rate(trackas_revenue_generated_rupees[1h]) < 1000
+for: 30m
+labels:
+  severity: warning
+annotations:
+  summary: "Revenue drop detected"
+  description: "Hourly revenue is {{ $value }} rupees"
+```
+
+#### **Low Fleet Utilization**
+```yaml
+alert: LowFleetUtilization
+expr: trackas_fleet_utilization_percent < 30
+for: 1h
+labels:
+  severity: warning
+annotations:
+  summary: "Low fleet utilization"
+  description: "Fleet utilization is {{ $value }}%"
+```
+
+## 🔧 Integration Examples
+
+### **React Component Integration**
+
+```typescript
+import { monitoring } from '../services/monitoringService';
+
+const ShipmentComponent = () => {
+  const handleCreateShipment = async (data: ShipmentData) => {
+    try {
+      const result = await monitoring.measureAsyncPerformance(
+        'createShipment',
+        async () => {
+          return await api.shipments.create(data);
+        }
+      );
+      
+      monitoring.recordShipmentCreated(
+        userRole, 
+        data.urgency, 
+        'pending'
+      );
+      
+      return result;
+    } catch (error) {
+      monitoring.recordError(error, 'ShipmentComponent', 'high');
+      throw error;
+    }
+  };
+};
+```
+
+### **Service Integration**
+
+```typescript
+import { monitoring } from './monitoringService';
+
+export class PaymentService {
+  async processPayment(paymentData: PaymentData) {
+    return await monitoring.measureAsyncPerformance(
+      'processPayment',
+      async () => {
+        try {
+          const result = await this.executePayment(paymentData);
+          
+          monitoring.recordPayment(
+            paymentData.method,
+            'completed',
+            paymentData.amount
+          );
+          
+          return result;
+        } catch (error) {
+          monitoring.recordPayment(
+            paymentData.method,
+            'failed',
+            paymentData.amount
+          );
+          throw error;
+        }
+      }
+    );
+  }
+}
+```
+
+## 📱 Monitoring Endpoints
+
+### **Health Check Endpoint**
+```
+GET /health
+```
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "version": "1.0.0",
+  "environment": "production",
+  "uptime": 86400,
+  "checks": {
+    "database": "healthy",
+    "redis": "healthy",
+    "external_apis": "healthy"
+  }
+}
+```
+
+### **Metrics Endpoint**
+```
+GET /metrics
+```
+
+**Response:** Prometheus-formatted metrics
+```
+# HELP trackas_shipments_created_total Total number of shipments created
+# TYPE trackas_shipments_created_total counter
+trackas_shipments_created_total{user_role="shipper",urgency="express",status="pending"} 150
+
+# HELP trackas_api_response_time_seconds API response time in seconds
+# TYPE trackas_api_response_time_seconds histogram
+trackas_api_response_time_seconds_bucket{endpoint="/api/shipments",method="POST",status_code="200",le="0.1"} 45
+```
+
+### **System Status Endpoint**
+```
+GET /status
+```
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "system": {
+    "memory": {
+      "rss": 123456789,
+      "heapTotal": 98765432,
+      "heapUsed": 87654321
+    },
+    "platform": "linux",
+    "node_version": "v18.17.0",
+    "pid": 1234
+  },
+  "services": {
+    "supabase": "connected",
+    "sentry": "active",
+    "prometheus": "collecting",
+    "grafana": "monitoring"
+  }
+}
+```
+
+## 🎯 Best Practices
+
+### **1. Metric Naming**
+- Use consistent naming conventions
+- Include relevant labels for filtering
+- Avoid high cardinality labels
+
+### **2. Error Handling**
+- Always wrap monitoring calls in try-catch
+- Don't let monitoring errors break business logic
+- Use appropriate error severity levels
+
+### **3. Performance Impact**
+- Use sampling rates for high-volume metrics
+- Batch metric updates when possible
+- Monitor monitoring overhead
+
+### **4. Alert Fatigue**
+- Set appropriate thresholds
+- Use different severity levels
+- Implement alert suppression
+
+## 🔍 Troubleshooting
+
+### **Common Issues**
+
+#### **Metrics Not Appearing**
+1. Check Prometheus configuration
+2. Verify endpoint accessibility
+3. Check metric naming conventions
+
+#### **Sentry Not Capturing Errors**
+1. Verify DSN configuration
+2. Check network connectivity
+3. Review Sentry project settings
+
+#### **High Monitoring Overhead**
+1. Reduce sampling rates
+2. Optimize metric collection
+3. Review alert frequency
+
+### **Debug Commands**
+
+```bash
+# Check Prometheus targets
+curl http://localhost:9090/api/v1/targets
+
+# Check metrics endpoint
+curl http://localhost:3000/metrics
+
+# Check health endpoint
+curl http://localhost:3000/health
+
+# View Grafana logs
+docker logs grafana-container
+```
+
+## 📚 Additional Resources
+
+- [Prometheus Documentation](https://prometheus.io/docs/)
+- [Grafana Documentation](https://grafana.com/docs/)
+- [Sentry Documentation](https://docs.sentry.io/)
+- [TrackAS Monitoring Service](./src/services/monitoringService.ts)
+
+---
+
+**Note**: This monitoring setup is designed for enterprise-grade production environments. Adjust sampling rates and alert thresholds based on your specific requirements and infrastructure capacity.

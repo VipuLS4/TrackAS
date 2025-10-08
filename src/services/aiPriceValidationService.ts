@@ -187,7 +187,7 @@ export class AIPriceValidationService {
     historicalAverage: number
   ): Promise<number> {
     // Base calculation
-    let basePrice = this.calculateBaseRate(routeInfo.distance, input.vehicleType);
+    const basePrice = this.calculateBaseRate(routeInfo.distance, input.vehicleType);
     
     // Apply multipliers
     const distanceMultiplier = this.getDistanceMultiplier(routeInfo.distance);
