@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { AppProvider } from '../context/AppContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { DatabaseProvider } from '../context/DatabaseContext';
+import { AdminProvider, useAdmin } from '../context/AdminContext';
+import { ShipperProvider, useShipper } from '../context/ShipperContext';
+import { FleetOperatorProvider, useFleetOperator } from '../context/FleetOperatorContext';
+import { IndividualVehicleOwnerProvider, useIndividualVehicleOwner } from '../context/IndividualVehicleOwnerContext';
+import { CustomerProvider } from '../context/CustomerContext';
 import MarketingLoginPage from './MarketingLoginPage';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -37,21 +42,77 @@ import IndividualVehicleOwnerDashboard from './IndividualVehicleOwnerDashboard';
 import PaymentManagementDashboard from './PaymentManagementDashboard';
 import FleetSubscriptionManagement from './FleetSubscriptionManagement';
 import AIAssistant from './AIAssistant';
+import ShipperRegistration from './ShipperRegistration';
+import CustomerTrackingRoute from './CustomerTrackingRoute';
 
 const AppContent: React.FC = () => {
   const { state: authState } = useAuth();
+  const { isAdminAuthenticated, admin } = useAdmin();
+  const { isShipperAuthenticated, shipper } = useShipper();
+  const { isFleetOperatorAuthenticated, fleetOperator } = useFleetOperator();
+  const { isIndividualVehicleOwnerAuthenticated, individualOwner } = useIndividualVehicleOwner();
+  
   const [userRole, setUserRole] = useState<'admin' | 'shipper' | 'fleet' | 'individual' | 'operator' | 'customer' | 'logistics' | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showShipperRegistration, setShowShipperRegistration] = useState(false);
+  const [showFleetOperatorRegistration, setShowFleetOperatorRegistration] = useState(false);
+  const [showIndividualVehicleOwnerRegistration, setShowIndividualVehicleOwnerRegistration] = useState(false);
 
   useEffect(() => {
-    if (authState.isAuthenticated && authState.user) {
+    // Check authentication in order of priority
+    if (isAdminAuthenticated) {
+      setUserRole('admin');
+    } else if (isShipperAuthenticated) {
+      setUserRole('shipper');
+    } else if (isFleetOperatorAuthenticated) {
+      setUserRole('fleet');
+    } else if (isIndividualVehicleOwnerAuthenticated) {
+      setUserRole('individual');
+    } else if (authState.isAuthenticated && authState.user) {
       setUserRole(authState.user.role);
+    } else {
+      setUserRole(null);
     }
-  }, [authState]);
+  }, [isAdminAuthenticated, isShipperAuthenticated, isFleetOperatorAuthenticated, isIndividualVehicleOwnerAuthenticated, authState]);
 
   const handleLogin = (role: 'admin' | 'shipper' | 'fleet' | 'individual' | 'operator' | 'customer' | 'logistics') => {
-    setUserRole(role);
+    if (role === 'admin') {
+      setShowAdminLogin(true);
+    } else if (role === 'shipper') {
+      setShowShipperRegistration(true);
+    } else if (role === 'fleet') {
+      setShowFleetOperatorRegistration(true);
+    } else if (role === 'individual') {
+      setShowIndividualVehicleOwnerRegistration(true);
+    } else {
+      setUserRole(role);
+      setActiveTab('dashboard');
+    }
+  };
+
+  const handleAdminLogin = () => {
+    setShowAdminLogin(false);
+    setUserRole('admin');
+    setActiveTab('dashboard');
+  };
+
+  const handleShipperRegistration = () => {
+    setShowShipperRegistration(false);
+    setUserRole('shipper');
+    setActiveTab('dashboard');
+  };
+
+  const handleFleetOperatorRegistration = () => {
+    setShowFleetOperatorRegistration(false);
+    setUserRole('fleet');
+    setActiveTab('dashboard');
+  };
+
+  const handleIndividualVehicleOwnerRegistration = () => {
+    setShowIndividualVehicleOwnerRegistration(false);
+    setUserRole('individual');
     setActiveTab('dashboard');
   };
 
@@ -65,7 +126,7 @@ const AppContent: React.FC = () => {
     if (userRole === 'admin') {
       switch (activeTab) {
         case 'dashboard':
-          return <AdminDashboard />;
+          return <EnhancedAdminDashboard />;
         case 'approvals':
           return <ShipmentApproval userRole="admin" />;
         case 'verification':
@@ -91,7 +152,7 @@ const AppContent: React.FC = () => {
         case 'admin-login':
           return <DedicatedLoginPages userType="admin" />;
         default:
-          return <AdminDashboard />;
+          return <EnhancedAdminDashboard />;
       }
     }
 
@@ -227,14 +288,32 @@ const AppContent: React.FC = () => {
   // Check if we're on customer tracking page (no auth required)
   const isCustomerTrackingPage = window.location.pathname === '/track' || 
                                  window.location.pathname === '/tracking' ||
+                                 window.location.pathname.startsWith('/track/') ||
                                  window.location.search.includes('tracking_token');
 
   if (isCustomerTrackingPage) {
-    return <CustomerTrackingPortal />;
+    return <CustomerTrackingRoute />;
+  }
+
+  // Show registration/login pages
+  if (showAdminLogin) {
+    return <AdminLoginPage onSuccess={handleAdminLogin} onCancel={() => setShowAdminLogin(false)} />;
+  }
+
+  if (showShipperRegistration) {
+    return <ShipperRegistration onSuccess={handleShipperRegistration} onCancel={() => setShowShipperRegistration(false)} />;
+  }
+
+  if (showFleetOperatorRegistration) {
+    return <div>Fleet Operator Registration (Coming Soon)</div>;
+  }
+
+  if (showIndividualVehicleOwnerRegistration) {
+    return <div>Individual Vehicle Owner Registration (Coming Soon)</div>;
   }
 
   // Show marketing login page if not authenticated
-  if (!authState.isAuthenticated || !userRole) {
+  if (!authState.isAuthenticated && !isAdminAuthenticated && !isShipperAuthenticated && !isFleetOperatorAuthenticated && !isIndividualVehicleOwnerAuthenticated) {
     return (
       <MarketingLoginPage 
         onLogin={handleLogin}
@@ -292,7 +371,17 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <AdminProvider>
+        <ShipperProvider>
+          <FleetOperatorProvider>
+            <IndividualVehicleOwnerProvider>
+              <CustomerProvider>
+                <AppContent />
+              </CustomerProvider>
+            </IndividualVehicleOwnerProvider>
+          </FleetOperatorProvider>
+        </ShipperProvider>
+      </AdminProvider>
     </AuthProvider>
   );
 }
