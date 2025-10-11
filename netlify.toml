@@ -11,7 +11,7 @@
   status = 200
 
 [context.production]
-  environment = { VITE_SUPABASE_URL = "your-supabase-url", VITE_SUPABASE_ANON_KEY = "your-supabase-anon-key" }
+  environment = { VITE_SUPABASE_URL = "https://mppphvtmcmoqmsjvyroy.supabase.co", VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wcHBodnRtY21vcW1zanZ5cm95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxMTgwNzAsImV4cCI6MjA3NTY5NDA3MH0.KXSAgDa1aPNZ7GpwY9L0YJ9lh6EVFV6gaQS9tuuJx_Y" }
 
 [context.deploy-preview]
-  environment = { VITE_SUPABASE_URL = "your-supabase-url", VITE_SUPABASE_ANON_KEY = "your-supabase-anon-key" }
+  environment = { VITE_SUPABASE_URL = "https://mppphvtmcmoqmsjvyroy.supabase.co", VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wcHBodnRtY21vcW1zanZ5cm95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxMTgwNzAsImV4cCI6MjA3NTY5NDA3MH0.KXSAgDa1aPNZ7GpwY9L0YJ9lh6EVFV6gaQS9tuuJx_Y" }
