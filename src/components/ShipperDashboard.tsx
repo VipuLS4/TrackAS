@@ -23,7 +23,7 @@ import {
   Phone, 
   Mail, 
   Star, 
-  Route, 
+  Navigation, 
   Zap, 
   Shield, 
   CreditCard, 
@@ -464,7 +464,7 @@ const ShipperDashboard: React.FC = () => {
               <p className="text-xl font-bold text-green-600">₹{stats.avgCostPerKm}</p>
               <p className="text-sm text-gray-500">Cost efficiency</p>
             </div>
-            <Route className="h-8 w-8 text-green-600" />
+            <Navigation className="h-8 w-8 text-green-600" />
           </div>
         </div>
 

@@ -1,322 +1,184 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Building2, Truck, MessageSquare } from 'lucide-react';
-import { AppProvider } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DatabaseProvider } from './context/DatabaseContext';
+import { AdminProvider, useAdmin } from './context/AdminContext';
+import { ShipperProvider, useShipper } from './context/ShipperContext';
+import { FleetOperatorProvider, useFleetOperator } from './context/FleetOperatorContext';
+import { IndividualVehicleOwnerProvider, useIndividualVehicleOwner } from './context/IndividualVehicleOwnerContext';
+import { CustomerProvider } from './context/CustomerContext';
+
+// Import all components
+import MarketingLoginPage from './components/MarketingLoginPage';
+import LoginForm from './components/LoginForm';
 import AdminLoginPage from './components/AdminLoginPage';
-import CompanyLoginPage from './components/CompanyLoginPage';
-import OperatorLoginPage from './components/OperatorLoginPage';
-import AdminDashboard from './components/AdminDashboard';
-import Header from './components/Header';
-import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import EnhancedShipmentCreation from './components/EnhancedShipmentCreation';
-import LiveTracking from './components/LiveTracking';
-import LiveTrackingMap from './components/LiveTrackingMap';
-import Analytics from './components/Analytics';
-import OperatorManagement from './components/OperatorManagement';
-import ShipmentApproval from './components/ShipmentApproval';
-import AIRouteOptimizer from './components/AIRouteOptimizer';
-import CompanyRegistration from './components/CompanyRegistration';
-import VehicleRegistration from './components/VehicleRegistration';
-import VerificationDashboard from './components/VerificationDashboard';
-import OperationalFlow from './components/OperationalFlow';
-import UnifiedRegistration from './components/UnifiedRegistration';
-import CustomerTrackingPortal from './components/CustomerTrackingPortal';
-import PredictiveETA from './components/PredictiveETA';
-import DemandForecasting from './components/DemandForecasting';
-import AnomalyDetection from './components/AnomalyDetection';
-import AIInsightsDashboard from './components/AIInsightsDashboard';
-import DisputeManagement from './components/DisputeManagement';
-import InvoiceManagement from './components/InvoiceManagement';
-import AvailableJobs from './components/AvailableJobs';
-import CustomerShipments from './components/CustomerShipments';
-import ProofOfDelivery from './components/ProofOfDelivery';
-import VCODEAssignmentSystem from './components/VCODEAssignmentSystem';
 import EnhancedAdminDashboard from './components/EnhancedAdminDashboard';
+import ShipperDashboard from './components/ShipperDashboard';
+import ShipperRegistration from './components/ShipperRegistration';
+import FleetOperatorDashboard from './components/FleetOperatorDashboard';
+import FleetOperatorRegistration from './components/FleetOperatorRegistration';
+import IndividualVehicleOwnerDashboard from './components/IndividualVehicleOwnerDashboard';
+import IndividualVehicleOwnerRegistration from './components/IndividualVehicleOwnerRegistration';
+import CustomerTrackingRoute from './components/CustomerTrackingRoute';
 import AIAssistant from './components/AIAssistant';
 
 const AppContent: React.FC = () => {
   const { state: authState } = useAuth();
-  const [userRole, setUserRole] = useState<'admin' | 'shipper' | 'fleet_operator' | 'individual_vehicle_owner' | 'customer' | null>(null);
+  const { isAdminAuthenticated } = useAdmin();
+  const { isShipperAuthenticated } = useShipper();
+  const { isFleetOperatorAuthenticated } = useFleetOperator();
+  const { isIndividualVehicleOwnerAuthenticated } = useIndividualVehicleOwner();
+
+  const [userRole, setUserRole] = useState<'admin' | 'shipper' | 'fleet' | 'individual' | 'operator' | 'customer' | 'logistics' | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [loginPage, setLoginPage] = useState<'main' | 'admin' | 'shipper' | 'fleet_operator' | 'individual_vehicle_owner'>('main');
-  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showShipperRegistration, setShowShipperRegistration] = useState(false);
+  const [showFleetOperatorRegistration, setShowFleetOperatorRegistration] = useState(false);
+  const [showIndividualVehicleOwnerRegistration, setShowIndividualVehicleOwnerRegistration] = useState(false);
 
   useEffect(() => {
-    if (authState.isAuthenticated && authState.user) {
-      setUserRole(authState.user.role);
-      setLoginPage('main');
+    // Priority order: Admin > Shipper > Fleet Operator > Individual Vehicle Owner > General User
+    if (isAdminAuthenticated) {
+      setUserRole('admin');
+    } else if (isShipperAuthenticated) {
+      setUserRole('shipper');
+    } else if (isFleetOperatorAuthenticated) {
+      setUserRole('fleet');
+    } else if (isIndividualVehicleOwnerAuthenticated) {
+      setUserRole('individual');
+    } else if (authState.isAuthenticated && authState.user) {
+      setUserRole(authState.user.role as 'operator' | 'customer' | 'logistics');
     }
-  }, [authState]);
+  }, [authState, isAdminAuthenticated, isShipperAuthenticated, isFleetOperatorAuthenticated, isIndividualVehicleOwnerAuthenticated]);
 
-  const handleLogin = (role: 'admin' | 'shipper' | 'fleet_operator' | 'individual_vehicle_owner' | 'customer') => {
-    setUserRole(role);
+  const handleLogin = (role: 'admin' | 'shipper' | 'fleet' | 'individual' | 'operator' | 'customer' | 'logistics') => {
+    if (role === 'admin') {
+      setShowAdminLogin(true);
+    } else if (role === 'shipper') {
+      setShowShipperRegistration(true);
+    } else if (role === 'fleet') {
+      setShowFleetOperatorRegistration(true);
+    } else if (role === 'individual') {
+      setShowIndividualVehicleOwnerRegistration(true);
+    } else {
+      setUserRole(role);
+      setActiveTab('dashboard');
+    }
+  };
+
+  const handleAdminLogin = () => {
+    setShowAdminLogin(false);
+    setUserRole('admin');
     setActiveTab('dashboard');
-    setLoginPage('main');
+  };
+
+  const handleShipperRegistration = () => {
+    setShowShipperRegistration(false);
+    setUserRole('shipper');
+    setActiveTab('dashboard');
+  };
+
+  const handleFleetOperatorRegistration = () => {
+    setShowFleetOperatorRegistration(false);
+    setUserRole('fleet');
+    setActiveTab('dashboard');
+  };
+
+  const handleIndividualVehicleOwnerRegistration = () => {
+    setShowIndividualVehicleOwnerRegistration(false);
+    setUserRole('individual');
+    setActiveTab('dashboard');
   };
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    setSidebarOpen(false);
   };
 
   const renderContent = () => {
-    // Admin-specific content
-    if (userRole === 'admin') {
-      switch (activeTab) {
-        case 'dashboard':
-          return <EnhancedAdminDashboard />;
-        case 'approvals':
-          return <ShipmentApproval userRole="admin" />;
-        case 'verification':
-          return <VerificationDashboard />;
-        case 'disputes':
-          return <DisputeManagement />;
-        case 'analytics':
-          return <Analytics />;
-        case 'ai-insights':
-          return <AIInsightsDashboard />;
-        case 'anomaly-detection':
-          return <AnomalyDetection />;
-        case 'demand-forecasting':
-          return <DemandForecasting />;
-        case 'unified-registration':
-          return <UnifiedRegistration />;
-        default:
-          return <EnhancedAdminDashboard />;
-      }
+    // Check for customer tracking pages
+    const path = window.location.pathname;
+    if (path.startsWith('/track') || path.startsWith('/tracking')) {
+      return <CustomerTrackingRoute />;
     }
 
-    // Regular user content
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard userRole={userRole!} onTabChange={handleTabChange} />;
-      case 'create-shipment':
-        return <EnhancedShipmentCreation />;
-      case 'shipment-approval':
-        return <ShipmentApproval userRole={userRole as 'logistics'} />;
-      case 'operators':
-        return <OperatorManagement />;
-      case 'tracking':
-        return <LiveTracking />;
-      case 'my-shipments':
-        return <CustomerShipments />;
-      case 'available-jobs':
-        return <AvailableJobs />;
-      case 'active-shipments':
-        return <LiveTracking />;
-      case 'live-map':
-        return <LiveTrackingMap shipmentId="TAS-2024-001" />;
-      case 'route-optimizer':
-        return (
-          <AIRouteOptimizer
-            pickup={{ lat: 28.6139, lng: 77.2090, address: 'Delhi, India' }}
-            destination={{ lat: 19.0760, lng: 72.8777, address: 'Mumbai, India' }}
-            vehicleType="truck"
-            urgency="standard"
-            onRouteSelect={(route) => console.log('Selected route:', route)}
-          />
-        );
-      case 'analytics':
-        return <Analytics />;
-      case 'ai-insights':
-        return <AIInsightsDashboard />;
-      case 'predictive-eta':
-        return (
-          <PredictiveETA
-            shipmentId="TAS-2024-001"
-            currentLocation={{ lat: 28.6139, lng: 77.2090, address: 'Delhi, India' }}
-            destination={{ lat: 19.0760, lng: 72.8777, address: 'Mumbai, India' }}
-          />
-        );
-      case 'demand-forecasting':
-        return <DemandForecasting />;
-      case 'invoices':
-        return <InvoiceManagement userRole={userRole!} />;
-      case 'customer-tracking':
-        return <CustomerTrackingPortal />;
-      case 'company-registration':
-        return <CompanyRegistration />;
-      case 'vehicle-registration':
-        return <VehicleRegistration />;
-      case 'verification':
-        return <VerificationDashboard />;
-      case 'operational-flow':
-        return <OperationalFlow />;
-      default:
-        return <Dashboard userRole={userRole!} onTabChange={handleTabChange} />;
+    // Admin Dashboard
+    if (userRole === 'admin') {
+      return <EnhancedAdminDashboard />;
     }
+
+    // Shipper Dashboard
+    if (userRole === 'shipper') {
+      return <ShipperDashboard />;
+    }
+
+    // Fleet Operator Dashboard
+    if (userRole === 'fleet') {
+      return <FleetOperatorDashboard />;
+    }
+
+    // Individual Vehicle Owner Dashboard
+    if (userRole === 'individual') {
+      return <IndividualVehicleOwnerDashboard />;
+    }
+
+    // Default landing page
+    return (
+      <MarketingLoginPage 
+        onLogin={handleLogin} 
+        onSignUp={() => {}} 
+        isLoading={false} 
+      />
+    );
   };
 
-  // Show appropriate login page if not authenticated
-  if (!authState.isAuthenticated || !userRole) {
-    switch (loginPage) {
-      case 'admin':
-        return <AdminLoginPage onSuccess={() => handleLogin('admin')} />;
-      case 'shipper':
-        return <CompanyLoginPage onSuccess={() => handleLogin('shipper')} />;
-      case 'fleet_operator':
-        return <OperatorLoginPage onSuccess={() => handleLogin('fleet_operator')} />;
-      case 'individual_vehicle_owner':
-        return <OperatorLoginPage onSuccess={() => handleLogin('individual_vehicle_owner')} />;
-      default:
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-            <div className="max-w-md w-full">
-              <div className="text-center mb-8">
-                <div className="flex items-center justify-center space-x-3 mb-4">
-                  <img src="/LOGO.png" alt="TrackAS Logo" className="h-12 w-auto" />
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900">TrackAS</h1>
-                    <p className="text-sm text-gray-600">AI-Powered Logistics Platform</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">Select Login Portal</h2>
-                <div className="space-y-4">
-                  <button
-                    onClick={() => setLoginPage('admin')}
-                    className="w-full flex items-center space-x-3 p-4 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
-                  >
-                    <div className="bg-red-600 rounded-lg p-2">
-                      <Shield className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-medium text-gray-900">Admin Portal</h3>
-                      <p className="text-sm text-gray-600">System administration & oversight</p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setLoginPage('shipper')}
-                    className="w-full flex items-center space-x-3 p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    <div className="bg-blue-600 rounded-lg p-2">
-                      <Building2 className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-medium text-gray-900">Shipper Portal</h3>
-                      <p className="text-sm text-gray-600">Create shipments & manage logistics</p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setLoginPage('fleet_operator')}
-                    className="w-full flex items-center space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
-                  >
-                    <div className="bg-green-600 rounded-lg p-2">
-                      <Truck className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-medium text-gray-900">Fleet Operator</h3>
-                      <p className="text-sm text-gray-600">Manage fleet & receive assignments</p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setLoginPage('individual_vehicle_owner')}
-                    className="w-full flex items-center space-x-3 p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
-                  >
-                    <div className="bg-purple-600 rounded-lg p-2">
-                      <Truck className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-medium text-gray-900">Individual Vehicle Owner</h3>
-                      <p className="text-sm text-gray-600">Direct job acceptance & earnings</p>
-                    </div>
-                  </button>
-                </div>
-
-                <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-                  <p className="text-sm text-gray-600 mb-3">
-                    Don't have an account? 
-                    <a href="/register" className="text-blue-600 hover:text-blue-800 font-medium ml-1">
-                      Register here
-                    </a>
-                  </p>
-                  <div className="flex items-center justify-center space-x-2 text-gray-500 text-sm">
-                    <span>Powered by</span>
-                    <img 
-                      src="/Vipul.png" 
-                      alt="Vipul Sharma" 
-                      className="h-5 w-5 rounded-full object-cover"
-                    />
-                    <span className="font-medium">Vipul Sharma</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-    }
-  }
-
   return (
-    <DatabaseProvider userId={authState.user?.id} userType="company">
-      <AppProvider>
-        <div className="min-h-screen bg-gray-50">
-          <Header 
-            onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
-            userRole={userRole}
-          />
-          
-          <div className="flex">
-            <Sidebar 
-              isOpen={sidebarOpen}
-              activeTab={activeTab}
-              onTabChange={handleTabChange}
-              userRole={userRole}
-            />
-            
-            <main className="flex-1 lg:ml-64">
-              {renderContent()}
-            </main>
-          </div>
-          
-          {/* Overlay for mobile */}
-          {sidebarOpen && (
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
+    <div className="min-h-screen bg-gray-50">
+      {/* Show login/registration forms */}
+      {showAdminLogin && (
+        <AdminLoginPage onLogin={handleAdminLogin} />
+      )}
+      
+      {showShipperRegistration && (
+        <ShipperRegistration onRegistration={handleShipperRegistration} />
+      )}
+      
+      {showFleetOperatorRegistration && (
+        <FleetOperatorRegistration onRegistration={handleFleetOperatorRegistration} />
+      )}
+      
+      {showIndividualVehicleOwnerRegistration && (
+        <IndividualVehicleOwnerRegistration onRegistration={handleIndividualVehicleOwnerRegistration} />
+      )}
 
-          {/* AI Assistant */}
-          {authState.isAuthenticated && userRole && (
-            <AIAssistant
-              userRole={userRole}
-              userId={authState.user?.id || 'demo-user'}
-              isOpen={aiAssistantOpen}
-              onClose={() => setAiAssistantOpen(false)}
-            />
-          )}
+      {/* Main content */}
+      {renderContent()}
 
-          {/* AI Assistant Toggle Button */}
-          {authState.isAuthenticated && userRole && (
-            <button
-              onClick={() => setAiAssistantOpen(true)}
-              className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-30"
-              title="Open AI Assistant"
-            >
-              <MessageSquare className="h-6 w-6" />
-            </button>
-          )}
-        </div>
-      </AppProvider>
-    </DatabaseProvider>
+      {/* AI Assistant */}
+      <AIAssistant 
+        userType={userRole || 'guest'} 
+        userId={authState.user?.id || ''} 
+      />
+    </div>
   );
 };
 
-function App() {
+const App: React.FC = () => {
   return (
     <AuthProvider>
-      <AppContent />
+      <DatabaseProvider userType="company" userId="">
+        <AdminProvider>
+          <ShipperProvider>
+            <FleetOperatorProvider>
+              <IndividualVehicleOwnerProvider>
+                <CustomerProvider>
+                  <AppContent />
+                </CustomerProvider>
+              </IndividualVehicleOwnerProvider>
+            </FleetOperatorProvider>
+          </ShipperProvider>
+        </AdminProvider>
+      </DatabaseProvider>
     </AuthProvider>
   );
-}
+};
 
 export default App;
