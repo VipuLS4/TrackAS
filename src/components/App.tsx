@@ -43,6 +43,8 @@ import PaymentManagementDashboard from './PaymentManagementDashboard';
 import FleetSubscriptionManagement from './FleetSubscriptionManagement';
 import AIAssistant from './AIAssistant';
 import ShipperRegistration from './ShipperRegistration';
+import FleetOperatorRegistration from './FleetOperatorRegistration';
+import IndividualVehicleOwnerRegistration from './IndividualVehicleOwnerRegistration';
 import CustomerTrackingRoute from './CustomerTrackingRoute';
 
 const AppContent: React.FC = () => {
@@ -305,11 +307,11 @@ const AppContent: React.FC = () => {
   }
 
   if (showFleetOperatorRegistration) {
-    return <div>Fleet Operator Registration (Coming Soon)</div>;
+    return <FleetOperatorRegistration onSuccess={handleFleetOperatorRegistration} onCancel={() => setShowFleetOperatorRegistration(false)} />;
   }
 
   if (showIndividualVehicleOwnerRegistration) {
-    return <div>Individual Vehicle Owner Registration (Coming Soon)</div>;
+    return <IndividualVehicleOwnerRegistration onSuccess={handleIndividualVehicleOwnerRegistration} onCancel={() => setShowIndividualVehicleOwnerRegistration(false)} />;
   }
 
   // Show marketing login page if not authenticated
