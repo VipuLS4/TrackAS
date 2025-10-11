@@ -17,6 +17,9 @@ import {
   Car
 } from 'lucide-react';
 import LoginForm from './LoginForm';
+import { HeroSection } from './ui/HeroSection';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/Card';
+import { PrimaryButton } from './ui/PrimaryButton';
 
 interface MarketingLoginPageProps {
   onLogin: (credentials: any) => void;
@@ -73,32 +76,32 @@ const MarketingLoginPage: React.FC<MarketingLoginPageProps> = ({
       title: 'Admin',
       icon: Shield,
       description: 'System Administrator',
-      color: 'bg-red-500',
-      hoverColor: 'hover:bg-red-600'
+      color: 'bg-primary',
+      hoverColor: 'hover:bg-primary-600'
     },
     {
       role: 'shipper',
       title: 'Shipper',
       icon: Building,
       description: 'Logistics Company',
-      color: 'bg-blue-500',
-      hoverColor: 'hover:bg-blue-600'
+      color: 'bg-accent',
+      hoverColor: 'hover:bg-accent-600'
     },
     {
       role: 'fleet',
       title: 'Fleet Operator',
       icon: Truck,
       description: 'Fleet Management',
-      color: 'bg-green-500',
-      hoverColor: 'hover:bg-green-600'
+      color: 'bg-warm',
+      hoverColor: 'hover:bg-orange-600'
     },
     {
       role: 'individual',
       title: 'Individual Owner',
       icon: Car,
       description: 'Vehicle Owner',
-      color: 'bg-purple-500',
-      hoverColor: 'hover:bg-purple-600'
+      color: 'bg-success',
+      hoverColor: 'hover:bg-green-600'
     }
   ];
 
@@ -153,86 +156,80 @@ const MarketingLoginPage: React.FC<MarketingLoginPageProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-      {/* Header */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-12">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h1 className="text-5xl font-bold text-white mb-4">
-              TrackAS
-            </h1>
-            <p className="text-xl text-blue-200 mb-2">
-              Smart Logistics Platform
-            </p>
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              Connect fleets, shippers, and drivers seamlessly with AI-powered logistics management
-            </p>
-          </motion.div>
-        </div>
+    <div className="min-h-screen bg-bg">
+      {/* Hero Section */}
+      <HeroSection
+        title="TrackAS Logistics Platform"
+        subtitle="Revolutionary AI-powered logistics ecosystem connecting shippers, fleet operators, and drivers for seamless, secure, and efficient cargo transportation."
+        tagline="Track smarter, deliver faster, pay safer"
+        primaryButtonText="Get Started"
+        secondaryButtonText="Learn More"
+        onPrimaryClick={() => setShowLoginForm(true)}
+        onSecondaryClick={() => console.log('Learn more')}
+        showFounder={true}
+      />
 
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-          {features.map((feature, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300"
-            >
-              <feature.icon className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-gray-300 text-sm">
-                {feature.description}
-              </p>
-            </motion.div>
-          ))}
-        </div>
+      {/* Features Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-h2 font-heading font-bold text-text mb-4">
+              Enterprise-Grade Features
+            </h2>
+            <p className="text-xl text-muted max-w-3xl mx-auto">
+              Comprehensive logistics platform with AI-powered optimization, secure payments, and real-time tracking.
+            </p>
+          </div>
 
-        {/* User Role Selection */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          className="max-w-4xl mx-auto"
-        >
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <Card key={index} hover className="text-center animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                <div className="flex justify-center mb-4">
+                  <feature.icon className="w-8 h-8 text-primary" />
+                </div>
+                <CardTitle level={4} className="mb-2">{feature.title}</CardTitle>
+                <CardContent>{feature.description}</CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Role Selection Section */}
+      <section className="py-16 bg-bg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-h2 font-heading font-bold text-text mb-4">
               Choose Your Role
             </h2>
-            <p className="text-gray-300">
-              Select your role to access the appropriate dashboard
+            <p className="text-xl text-muted max-w-3xl mx-auto">
+              TrackAS serves multiple user types with specialized dashboards and features tailored to your needs.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {userRoles.map((role, index) => (
-              <motion.button
-                key={role.role}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: 0.9 + index * 0.1 }}
+              <Card 
+                key={index} 
+                hover 
+                className="text-center cursor-pointer group animate-slide-up" 
+                style={{ animationDelay: `${index * 0.1}s` }}
                 onClick={() => handleRoleSelect(role.role as any)}
-                className={`${role.color} ${role.hoverColor} text-white rounded-xl p-6 text-center transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl`}
               >
-                <role.icon className="h-12 w-12 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">
-                  {role.title}
-                </h3>
-                <p className="text-sm opacity-90">
-                  {role.description}
-                </p>
-                <ArrowRight className="h-5 w-5 mx-auto mt-4" />
-              </motion.button>
+                <div className={`w-12 h-12 ${role.color} rounded-md flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
+                  <role.icon className="w-6 h-6 text-white" />
+                </div>
+                <CardTitle level={4} className="mb-2">{role.title}</CardTitle>
+                <CardContent className="text-sm">{role.description}</CardContent>
+                <div className="flex items-center justify-center text-primary text-sm font-medium group-hover:translate-x-1 transition-transform mt-4">
+                  <span>Get Started</span>
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </div>
+              </Card>
             ))}
           </div>
-        </motion.div>
+        </div>
+      </section>
 
         {/* Stats */}
         <motion.div
