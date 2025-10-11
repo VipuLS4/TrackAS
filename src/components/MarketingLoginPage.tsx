@@ -231,49 +231,111 @@ const MarketingLoginPage: React.FC<MarketingLoginPageProps> = ({
         </div>
       </section>
 
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 1.2 }}
-          className="text-center mt-16"
-        >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">
+      {/* Stats Section */}
+      <section className="py-16 bg-gradient-hero">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-h2 font-heading font-bold text-white mb-4">
+              Trusted by Thousands
+            </h2>
+            <p className="text-xl text-white/90 max-w-3xl mx-auto">
+              Join the growing community of logistics professionals using TrackAS to optimize their operations.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="text-center animate-slide-up">
+              <div className="text-3xl md:text-4xl font-heading font-bold text-white mb-2">
                 &lt; 2 min
               </div>
-              <div className="text-gray-300 text-sm">
+              <div className="text-white/80 text-sm">
                 Assignment Time
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">
+            <div className="text-center animate-slide-up" style={{ animationDelay: '0.1s' }}>
+              <div className="text-3xl md:text-4xl font-heading font-bold text-white mb-2">
                 10K+
               </div>
-              <div className="text-gray-300 text-sm">
+              <div className="text-white/80 text-sm">
                 Active Users
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">
+            <div className="text-center animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <div className="text-3xl md:text-4xl font-heading font-bold text-white mb-2">
                 99.9%
               </div>
-              <div className="text-gray-300 text-sm">
+              <div className="text-white/80 text-sm">
                 Success Rate
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">
+            <div className="text-center animate-slide-up" style={{ animationDelay: '0.3s' }}>
+              <div className="text-3xl md:text-4xl font-heading font-bold text-white mb-2">
                 Bank-grade
               </div>
-              <div className="text-gray-300 text-sm">
+              <div className="text-white/80 text-sm">
                 Security
               </div>
             </div>
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-text text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {/* Brand */}
+            <div className="col-span-1 md:col-span-2">
+              <div className="flex items-center space-x-2 mb-4">
+                <img src="/LOGO.png" alt="TrackAS" className="h-8 w-8" />
+                <span className="text-xl font-heading font-bold">TrackAS</span>
+              </div>
+              <p className="text-white/80 mb-6 max-w-md">
+                Revolutionary AI-powered logistics platform connecting the global supply chain for smarter, faster, and safer deliveries.
+              </p>
+              
+              {/* Founder Badge */}
+              <div className="flex items-center space-x-3 bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                <img
+                  src="/Vipul.png"
+                  alt="Vipul Sharma"
+                  className="w-10 h-10 rounded-full border-2 border-white/20"
+                />
+                <div>
+                  <p className="text-white font-medium text-sm">Featured</p>
+                  <p className="text-white/80 text-xs">Founded by Vipul Sharma</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <h3 className="font-heading font-semibold mb-4">Platform</h3>
+              <ul className="space-y-2 text-white/80 text-sm">
+                <li><a href="#" className="hover:text-white transition-colors">Admin Dashboard</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Shipper Portal</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Fleet Management</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Driver App</a></li>
+              </ul>
+            </div>
+
+            {/* Support */}
+            <div>
+              <h3 className="font-heading font-semibold mb-4">Support</h3>
+              <ul className="space-y-2 text-white/80 text-sm">
+                <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">API Reference</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-white/20 mt-8 pt-8 text-center text-white/60 text-sm">
+            <p>&copy; 2024 TrackAS. All rights reserved. Built with ❤️ for the logistics industry.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
